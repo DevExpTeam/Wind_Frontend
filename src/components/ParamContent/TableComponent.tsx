@@ -350,16 +350,16 @@ const TableComponent: FC<TableComponentProps> = ({
                               },
                               ci == 0
                                 ? {
-                                    position: 'sticky',
-                                    left: 0,
-                                    zIndex: 2,
-                                    backgroundColor: '#aaa'
-                                  }
+                                  position: 'sticky',
+                                  left: 0,
+                                  zIndex: 2,
+                                  backgroundColor: '#aaa'
+                                }
                                 : { zIndex: 1 }
                             ]}
                           >
                             {ri == focusCell.rowIndex &&
-                            ci == focusCell.colIndex ? (
+                              ci == focusCell.colIndex ? (
                               <Input
                                 type="tel"
                                 disableUnderline
@@ -396,6 +396,13 @@ const TableComponent: FC<TableComponentProps> = ({
                                       .replace(/[^0-9.]/g, '')
                                       .replace(/(?<=\..*)\./g, '')
                                   );
+                                }}
+                                onBlur={() => {
+                                  const currentValue = parseFloat(c);
+                                  if (!isNaN(currentValue)) {
+                                    // Round the value to one decimal place
+                                    handleChange(ri, ci - 1, currentValue.toFixed(1));
+                                  }
                                 }}
                               />
                             ) : (
