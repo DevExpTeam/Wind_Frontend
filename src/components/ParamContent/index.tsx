@@ -29,7 +29,9 @@ const Content: FC<any> = ({
   handleChange,
   currentValue,
   getIsShowProps,
-  getRenderValue
+  getRenderValue,
+  isGroup = false,
+  groupID
 }) => {
   return (
     <>
@@ -42,6 +44,7 @@ const Content: FC<any> = ({
         if (typeof getIsShowProps == 'function' && !getIsShowProps({ item }))
           return null;
         if (item.type == PARAM_TYPE.GROUP) {
+          isGroup = true
           return (
             <div
               style={{
@@ -62,6 +65,7 @@ const Content: FC<any> = ({
                 handleChange={handleChange}
                 getIsShowProps={getIsShowProps}
                 getRenderValue={getRenderValue}
+                isGroup={isGroup}
               />
             </div>
           );
@@ -155,10 +159,24 @@ const ParamContent: FC<ParamContentProps> = ({ param, parentId }) => {
           props[l] = (currentValue as UpdateParamInfo).value[l];
         });
       }
-      if (Array.isArray(item.renderValue.params.global)) {
-        console.log(item.renderValue.params.global);
-      }
-      return item.renderValue.fn(props);
+      if (Array.isArray(item.renderValue.params.global))
+        return item.renderValue.fn(props);
+    },
+    [currentValue]
+  );
+  const isGroup = useCallback(
+    ({ item }: { item: any }) => {
+      if (item.type == PARAM_TYPE.GROUP)
+
+        return true;
+    },
+    [currentValue]
+  );
+  const groupID = useCallback(
+    ({ item }: { item: any }) => {
+      if (item.type == PARAM_TYPE.GROUP)
+
+        return item.id;
     },
     [currentValue]
   );

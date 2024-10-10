@@ -259,6 +259,7 @@ export const PARAM_TYPE = {
     YESNO: 'switch_yesno'
   },
   CHOICE: {
+    MODEL_TIME_INTERVAL: 'choice_model_time_interval',
     PPA_CASE: 'choice_ppa_case',
     TECH: 'choice_tech',
     CURRENCY: 'choice_currency',
@@ -306,6 +307,13 @@ export const CHOICE_DATA: Record<
     { id: 1, label: 'Base Case' },
     { id: 2, label: 'Management Case' },
     { id: 3, label: 'Upside Case' }
+  ],
+  [PARAM_TYPE.CHOICE.MODEL_TIME_INTERVAL]: [
+    { id: 1, label: '1' },
+    { id: 2, label: '3' },
+    { id: 3, label: '6' },
+    { id: 4, label: '12' },
+
   ],
   [PARAM_TYPE.CHOICE.ASSET]: [
     { id: 1, label: 'EP1 - Upsall Central (Hag Lane) - base case' },
@@ -413,6 +421,18 @@ export const CHOICE_DATA: Record<
 };
 
 export const PARAM_UNIT = {
+  USD_PER_MWH: {
+    id: 'usd_per_mwh',
+    label: 'US$/MwH'
+  },
+  USD_PRO_1000: {
+    id: 'usd_pro_1000',
+    label: "$'000"
+  },
+  USD_1000_PER_MW: {
+    id: 'usd_pro_1000_per_mw',
+    label: "$'000/MW"
+  },
   MW: {
     id: 'mw',
     label: 'MW'
@@ -453,6 +473,7 @@ export const PARAM_UNIT = {
     id: 'percentage',
     label: '%'
   },
+  X: { id: 'x', label: 'x' },
   PERCENTAGE_PA: {
     id: 'percentage_pa',
     label: '% p.a'
@@ -473,18 +494,12 @@ export const PARAM_UNIT = {
     id: 'gbp_pro_1000',
     label: "£'000"
   },
-  USD_PRO_1000: {
-    id: 'usd_pro_1000',
-    label: "$'000"
-  },
+
   GBP_PRO_1000_PER_MW: {
     id: 'gbp_pro_1000_per_mw',
     label: "£'000/MW"
   },
-  USD_1000_PER_MW: {
-    id: 'usd_pro_1000_per_mw',
-    label: "$'000/MW"
-  },
+
   GBP_PRO_1000_PER_KM: {
     id: 'gbp_pro_1000_per_km',
     label: "£'000/km"
@@ -544,21 +559,21 @@ export interface ITABLE_PARAMETER {
   type: string;
   unit: { id: string; label: string } | null;
   stickyCols:
-    | {
-        type: string;
-        params: string[];
-        fn: any;
-      }
-    | undefined
-    | null;
+  | {
+    type: string;
+    params: string[];
+    fn: any;
+  }
+  | undefined
+  | null;
   stickyRows:
-    | {
-        type: string;
-        params: string[];
-        fn: any;
-      }
-    | undefined
-    | null;
+  | {
+    type: string;
+    params: string[];
+    fn: any;
+  }
+  | undefined
+  | null;
 }
 export interface ITIMING_PARAMETER_SUBCATEGORY {
   id: string;
@@ -631,6 +646,12 @@ export const INPUT_PARAMS: IInputParameter[] = [
         defaultValue: 3,
         minValue: 1,
         maxValue: 12
+      },
+      {
+        id: 'modeling_time_interval',
+        title: 'Modeling Time Interval',
+        type: PARAM_TYPE.CHOICE.MODEL_TIME_INTERVAL,
+
       }
     ],
     children: []
@@ -663,6 +684,7 @@ export const INPUT_PARAMS: IInputParameter[] = [
                 id: 'base_case',
                 title: 'Base Case',
                 type: PARAM_TYPE.INTEGER,
+                unit: PARAM_UNIT.YEARS,
                 minValue: 10,
                 maxValue: 50
               },
@@ -671,934 +693,520 @@ export const INPUT_PARAMS: IInputParameter[] = [
                 title: 'Management Case',
                 type: PARAM_TYPE.INTEGER,
                 minValue: 10,
+                unit: PARAM_UNIT.YEARS,
                 maxValue: 50
               },
               {
                 id: 'upside_case',
                 title: 'Upside Case',
                 type: PARAM_TYPE.INTEGER,
+                unit: PARAM_UNIT.YEARS,
                 minValue: 10,
                 maxValue: 50
               }
             ]
-
-            // stickyCols: {
-            //   type: 'function',
-            //   params: [],
-            //   fn: () => {
-            //     const cases = CHOICE_DATA[PARAM_TYPE.CHOICE.PPA_CASE].map(
-            //       (dd) => dd.label
-            //     );
-            //     return cases;
-            //   }
-            // },
-            // stickyRows: {
-            //   type: 'function',
-            //   params: [],
-            //   fn: () => {
-            //     const result = [];
-            //     result.push('');
-            //     const len = CHOICE_DATA[PARAM_TYPE.CHOICE.DNO].length;
-            //     for (let i = 0; i < len; i++) {
-            //       result.push(CHOICE_DATA[PARAM_TYPE.CHOICE.DNO][i].label);
-            //     }
-            //     return result;
-            //   }
-            // }
           },
           {
             id: 'percentage_sold_of_fit_during_ppa_term',
             title: 'Percentage of Electricity sold of FiT rate during PPA Term',
-            type: PARAM_TYPE.TABLE,
-            stickyCols: {
-              type: 'function',
-              params: ['operationStartDate'],
-              fn: () => {
-                const cases = CHOICE_DATA[PARAM_TYPE.CHOICE.PPA_CASE].map(
-                  (dd) => dd.label
-                );
-                return cases;
+            type: PARAM_TYPE.GROUP,
+            children: [
+              {
+                id: 'electricity_sold_percen_base_case',
+                title: 'Base Case',
+                type: PARAM_TYPE.INTEGER,
+                unit: PARAM_UNIT.PERCENTAGE,
+              },
+              {
+                id: 'electricity_sold_percen_management_case',
+                title: 'Management Case',
+                type: PARAM_TYPE.INTEGER,
+                unit: PARAM_UNIT.PERCENTAGE,
+              },
+              {
+                id: 'electricity_sold_percen_upside_case',
+                title: 'Upside Case',
+                type: PARAM_TYPE.INTEGER,
+                unit: PARAM_UNIT.PERCENTAGE,
               }
-            },
-            stickyRows: {
-              type: 'function',
-              params: ['cyclesPerDay'],
-              fn: () => {
-                const result = [' '];
-                result.push('Years');
-                return result;
+            ]
+
+          }
+        ]
+      },
+      {
+        id: 'tariff',
+        title: 'Tariff',
+        datum: [
+          {
+            id: 'fit_inflation_profile',
+            title: 'FiT - Feed in Tariff Inflation',
+            type: PARAM_TYPE.CHOICE.PPA_CASE
+          },
+          {
+            id: 'fit_price',
+            title: 'FiT Price per MW',
+            type: PARAM_TYPE.GROUP,
+            children: [
+              {
+                id: 'fit_base_case',
+                title: 'Base Case',
+                type: PARAM_TYPE.NUMBER
+                // minValue: 10,
+                // maxValue: 50
+              },
+              {
+                id: 'fit_management_case',
+                title: 'Management Case',
+                type: PARAM_TYPE.NUMBER
+                // minValue: 10,
+                // maxValue: 50
+              },
+              {
+                id: 'fit_upside_case',
+                title: 'Upside Case',
+                type: PARAM_TYPE.NUMBER
+                // minValue: 10,
+                // maxValue: 50
               }
-            }
+            ]
+          },
+          {
+            id: 'merchant_inflation_profile',
+            title: 'Merchant Price Inflation',
+            type: PARAM_TYPE.CHOICE.PPA_CASE
+          },
+          {
+            id: 'merchant_price',
+            title: 'Merchant Price per MW',
+            type: PARAM_TYPE.GROUP,
+            children: [
+              {
+                id: 'merchant_base_case',
+                title: 'Base Case',
+                type: PARAM_TYPE.NUMBER
+                // minValue: 10,
+                // maxValue: 50
+              },
+              {
+                id: 'merchant_management_case',
+                title: 'Management Case',
+                type: PARAM_TYPE.NUMBER
+                // minValue: 10,
+                // maxValue: 50
+              },
+              {
+                id: 'merchant_upside_case',
+                title: 'Upside Case',
+                type: PARAM_TYPE.NUMBER
+                // minValue: 10,
+                // maxValue: 50
+              }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'revenue_from_others',
+        title: 'Revenue from Others',
+        datum: [
+          {
+            id: 'other_revenue_inflation_profile',
+            title: 'Other Revenue Inflation Profile',
+            type: PARAM_TYPE.CHOICE.PPA_CASE
+          },
+          {
+            id: 'other_revenue_per_month',
+            title: 'Revenue from Others per month',
+            type: PARAM_TYPE.GROUP,
+            children: [
+              {
+                id: 'base_case',
+                title: 'Base Case',
+                type: PARAM_TYPE.NUMBER
+                // minValue: 10,
+                // maxValue: 50
+              },
+              {
+                id: 'management_case',
+                title: 'Management Case',
+                type: PARAM_TYPE.NUMBER
+                // minValue: 10,
+                // maxValue: 50
+              },
+              {
+                id: 'upside_case',
+                title: 'Upside Case',
+                type: PARAM_TYPE.NUMBER
+                // minValue: 10,
+                // maxValue: 50
+              }
+            ]
           }
         ]
       }
-      // {
-      //   id: 'excluding_batteries',
-      //   title: 'Excluding batteries',
-      //   datum: [
-      //     {
-      //       id: 'excluding_battery_sensitivity',
-      //       title: 'Excluding battery sensitivity',
-      //       type: PARAM_TYPE.SWITCH.ONOFF
-      //     },
-      //     {
-      //       id: 'excluding_battery_sensitivity_magnitude',
-      //       title: 'Excluding battery sensitivity magnitude',
-      //       type: PARAM_TYPE.NUMBER,
-      //       unit: PARAM_UNIT.PERCENTAGE,
-      //       isShow: {
-      //         params: {
-      //           global: [],
-      //           local: ['excluding_battery_sensitivity']
-      //         },
-      //         fn: ({
-      //           excluding_battery_sensitivity
-      //         }: {
-      //           excluding_battery_sensitivity: number;
-      //         }) =>
-      //           excluding_battery_sensitivity ==
-      //           SWITCH_DATA[PARAM_TYPE.SWITCH.ONOFF].ON?.id
-      //       }
-      //     }
-      //   ],
-      //   children: [
-      //     {
-      //       id: 'land',
-      //       title: 'Land',
-      //       datum: [
-      //         // {
-      //         //   id: 'currency',
-      //         //   title: 'Currency',
-      //         //   type: PARAM_TYPE.CHOICE.CURRENCY
-      //         // },
-      //         {
-      //           id: 'land_cost',
-      //           title: 'Land cost',
-      //           type: PARAM_TYPE.NUMBER,
-      //           unit: PARAM_UNIT.GBP_PRO_1000_PER_MW
-      //         },
-      //         {
-      //           id: 'payment_profile',
-      //           title: 'Payment profile',
-      //           type: PARAM_TYPE.CHOICE.PAYMENT_PROFILE
-      //         },
-      //         {
-      //           id: 'useful_economic_life',
-      //           title: 'Useful economic life',
-      //           type: PARAM_TYPE.INTEGER,
-      //           unit: PARAM_UNIT.YEARS,
-      //           minValue: 10,
-      //           maxValue: 50
-      //         },
-
-      //         {
-      //           id: 'capex_provision_months',
-      //           title: 'Capex provision months',
-      //           type: PARAM_TYPE.INTEGER,
-      //           unit: PARAM_UNIT.MONTHS,
-      //           minValue: 0,
-      //           maxValue: 6
-      //         }
-      //       ]
-      //     },
-      //     {
-      //       id: 'pooling_substation',
-      //       title: 'Pooling substation',
-      //       datum: [
-      //         // {
-      //         //   id: 'currency',
-      //         //   title: 'Currency',
-      //         //   type: PARAM_TYPE.CHOICE.CURRENCY
-      //         // },
-      //         {
-      //           id: 'pooling_substation_cost',
-      //           title: 'Pooling substation cost',
-      //           type: PARAM_TYPE.NUMBER,
-      //           unit: PARAM_UNIT.GBP_PRO_1000_PER_MW
-      //         },
-      //         {
-      //           id: 'payment_profile',
-      //           title: 'Payment profile',
-      //           type: PARAM_TYPE.CHOICE.PAYMENT_PROFILE
-      //         },
-      //         {
-      //           id: 'useful_economic_life',
-      //           title: 'Useful economic life',
-      //           type: PARAM_TYPE.INTEGER,
-      //           unit: PARAM_UNIT.YEARS,
-      //           minValue: 10,
-      //           maxValue: 50
-      //         },
-
-      //         {
-      //           id: 'capex_provision_months',
-      //           title: 'Capex provision months',
-      //           type: PARAM_TYPE.INTEGER,
-      //           unit: PARAM_UNIT.MONTHS,
-      //           minValue: 0,
-      //           maxValue: 6
-      //         }
-      //       ]
-      //     },
-      //     {
-      //       id: 'transformers',
-      //       title: 'Transformers',
-      //       datum: [
-      //         {
-      //           id: 'transformers_cost',
-      //           title: 'Transformers cost',
-      //           type: PARAM_TYPE.NUMBER,
-      //           unit: PARAM_UNIT.GBP_PRO_1000_PER_MW
-      //         },
-      //         {
-      //           id: 'payment_profile',
-      //           title: 'Payment profile',
-      //           type: PARAM_TYPE.CHOICE.PAYMENT_PROFILE
-      //         },
-      //         {
-      //           id: 'useful_economic_life',
-      //           title: 'Useful economic life',
-      //           type: PARAM_TYPE.INTEGER,
-      //           unit: PARAM_UNIT.YEARS,
-      //           minValue: 10,
-      //           maxValue: 50
-      //         },
-
-      //         {
-      //           id: 'capex_provision_months',
-      //           title: 'Capex provision months',
-      //           type: PARAM_TYPE.INTEGER,
-      //           unit: PARAM_UNIT.MONTHS,
-      //           minValue: 0,
-      //           maxValue: 6
-      //         }
-      //       ]
-      //     },
-      //     {
-      //       id: 'balance_of_plant',
-      //       title: 'Balance of plant',
-      //       datum: [
-      //         // {
-      //         //   id: 'currency',
-      //         //   title: 'Currency',
-      //         //   type: PARAM_TYPE.CHOICE.CURRENCY
-      //         // },
-      //         {
-      //           id: 'balance_of_plant_cost',
-      //           title: 'Balance of plant cost',
-      //           type: PARAM_TYPE.NUMBER,
-      //           unit: PARAM_UNIT.GBP_PRO_1000
-      //         },
-      //         {
-      //           id: 'payment_profile',
-      //           title: 'Payment profile',
-      //           type: PARAM_TYPE.CHOICE.PAYMENT_PROFILE
-      //         },
-      //         {
-      //           id: 'useful_economic_life',
-      //           title: 'Useful economic life',
-      //           type: PARAM_TYPE.INTEGER,
-      //           unit: PARAM_UNIT.YEARS,
-      //           minValue: 10,
-      //           maxValue: 50
-      //         },
-
-      //         {
-      //           id: 'capex_provision_months',
-      //           title: 'Capex provision months',
-      //           type: PARAM_TYPE.INTEGER,
-      //           unit: PARAM_UNIT.MONTHS,
-      //           minValue: 0,
-      //           maxValue: 6
-      //         }
-      //       ]
-      //     },
-      //     {
-      //       id: 'enterprise_value',
-      //       title: 'Enterprise value - development fee',
-      //       datum: [
-      //         {
-      //           id: 'enterprise_value_switch',
-      //           title: 'Switch',
-      //           type: PARAM_TYPE.SWITCH.ONOFF,
-      //           defaultValue: SWITCH_DATA[PARAM_TYPE.SWITCH.ONOFF].ON?.id
-      //         },
-      //         // {
-      //         //   id: 'currency',
-      //         //   title: 'Currency',
-      //         //   type: PARAM_TYPE.CHOICE.CURRENCY,
-      //         //   isShow: {
-      //         //     params: {
-      //         //       global: [],
-      //         //       local: ['enterprise_value_switch']
-      //         //     },
-      //         //     fn: ({
-      //         //       enterprise_value_switch
-      //         //     }: {
-      //         //       enterprise_value_switch: number;
-      //         //     }) =>
-      //         //       enterprise_value_switch ==
-      //         //       SWITCH_DATA[PARAM_TYPE.SWITCH.ONOFF].ON?.id
-      //         //   }
-      //         // },
-      //         {
-      //           id: 'enterprise_value_data',
-      //           title: 'Enterprise value data',
-      //           type: PARAM_TYPE.GROUP,
-      //           children: [
-      //             {
-      //               id: 'development_fee_hour_1',
-      //               title: 'Development fee hour 1',
-      //               type: PARAM_TYPE.NUMBER,
-      //               unit: PARAM_UNIT.GBP_PRO_1000_PER_MW
-      //             },
-      //             {
-      //               id: 'development_fee_hour_2',
-      //               title: 'Development fee hour 2',
-      //               type: PARAM_TYPE.NUMBER,
-      //               unit: PARAM_UNIT.GBP_PRO_1000_PER_MW
-      //             },
-      //             {
-      //               id: 'development_fee_hour_3',
-      //               title: 'Development fee hour 3',
-      //               type: PARAM_TYPE.NUMBER,
-      //               unit: PARAM_UNIT.GBP_PRO_1000_PER_MW
-      //             },
-      //             {
-      //               id: 'development_fee_hour_4',
-      //               title: 'Development fee hour 4',
-      //               type: PARAM_TYPE.NUMBER,
-      //               unit: PARAM_UNIT.GBP_PRO_1000_PER_MW
-      //             },
-      //             {
-      //               id: 'development_fee_hour_5',
-      //               title: 'Development fee hour 5',
-      //               type: PARAM_TYPE.NUMBER,
-      //               unit: PARAM_UNIT.GBP_PRO_1000_PER_MW
-      //             },
-      //             {
-      //               id: 'development_fee_hour_6',
-      //               title: 'Development fee hour 6',
-      //               type: PARAM_TYPE.NUMBER,
-      //               unit: PARAM_UNIT.GBP_PRO_1000_PER_MW
-      //             },
-      //             {
-      //               id: 'development_fee_hour_7',
-      //               title: 'Development fee hour 7',
-      //               type: PARAM_TYPE.NUMBER,
-      //               unit: PARAM_UNIT.GBP_PRO_1000_PER_MW
-      //             },
-      //             {
-      //               id: 'development_fee_hour_8',
-      //               title: 'Development fee hour 8',
-      //               type: PARAM_TYPE.NUMBER,
-      //               unit: PARAM_UNIT.GBP_PRO_1000_PER_MW
-      //             }
-      //           ],
-      //           isShow: {
-      //             params: {
-      //               global: [],
-      //               local: ['enterprise_value_switch']
-      //             },
-      //             fn: ({
-      //               enterprise_value_switch
-      //             }: {
-      //               enterprise_value_switch: number;
-      //             }) =>
-      //               enterprise_value_switch ==
-      //               SWITCH_DATA[PARAM_TYPE.SWITCH.ONOFF].ON?.id
-      //           }
-      //         },
-      //         {
-      //           id: 'payment_profile',
-      //           title: 'Payment profile',
-      //           type: PARAM_TYPE.CHOICE.PAYMENT_PROFILE,
-      //           isShow: {
-      //             params: {
-      //               global: [],
-      //               local: ['enterprise_value_switch']
-      //             },
-      //             fn: ({
-      //               enterprise_value_switch
-      //             }: {
-      //               enterprise_value_switch: number;
-      //             }) =>
-      //               enterprise_value_switch ==
-      //               SWITCH_DATA[PARAM_TYPE.SWITCH.ONOFF].ON?.id
-      //           }
-      //         },
-      //         {
-      //           id: 'useful_economic_life',
-      //           title: 'Useful economic life',
-      //           type: PARAM_TYPE.INTEGER,
-      //           unit: PARAM_UNIT.YEARS,
-      //           minValue: 10,
-      //           maxValue: 50,
-      //           isShow: {
-      //             params: {
-      //               global: [],
-      //               local: ['enterprise_value_switch']
-      //             },
-      //             fn: ({
-      //               enterprise_value_switch
-      //             }: {
-      //               enterprise_value_switch: number;
-      //             }) =>
-      //               enterprise_value_switch ==
-      //               SWITCH_DATA[PARAM_TYPE.SWITCH.ONOFF].ON?.id
-      //           }
-      //         },
-      //         {
-      //           id: 'capex_provision_months',
-      //           title: 'Capex provision months',
-      //           type: PARAM_TYPE.INTEGER,
-      //           unit: PARAM_UNIT.MONTHS,
-      //           minValue: 0,
-      //           maxValue: 6,
-      //           isShow: {
-      //             params: {
-      //               global: [],
-      //               local: ['enterprise_value_switch']
-      //             },
-      //             fn: ({
-      //               enterprise_value_switch
-      //             }: {
-      //               enterprise_value_switch: number;
-      //             }) =>
-      //               enterprise_value_switch ==
-      //               SWITCH_DATA[PARAM_TYPE.SWITCH.ONOFF].ON?.id
-      //           }
-      //         }
-      //       ]
-      //     }
-      //   ]
-      // },
-      // {
-      //   id: 'capex_payment_profile_data',
-      //   title: 'Capex payment profile data',
-      //   datum: [
-      //     // {
-      //     //   id: 'operation_start_date',
-      //     //   title: 'COD and operation start date',
-      //     //   type: PARAM_TYPE.DATE
-      //     //   //  this date comes from operation start date.
-      //     //   // only visible, not changeable
-      //     // },
-      //     {
-      //       id: 'capex_payment_profiles',
-      //       title: 'Capex payment profiles',
-      //       type: PARAM_TYPE.TABLE,
-      //       stickyRows: {
-      //         type: 'function',
-      //         params: ['operationStartDate'],
-      //         fn: ({
-      //           operationStartDate = '2028-01-01'
-      //         }: {
-      //           operationStartDate: string;
-      //         }) => {
-      //           const result = [];
-      //           result.push([
-      //             'CapexMilestonePaymentList',
-      //             moment(operationStartDate).format('DD-MMM-YY')
-      //           ]);
-      //           for (let i = 0; i < 30; i++) {
-      //             result.push([
-      //               i + 1 - 30,
-      //               `COD ${i + 1 - 30}`,
-      //               moment(operationStartDate)
-      //                 .add('month', i)
-      //                 .endOf('month')
-      //                 .format('DD-MMM-YY')
-      //             ]);
-      //           }
-      //           return result;
-      //         }
-      //       },
-      //       stickyCols: {
-      //         type: 'function',
-      //         params: ['cyclesPerDay'],
-
-      //         //
-
-      //         fn: () =>
-      //           CHOICE_DATA[PARAM_TYPE.CHOICE.PAYMENT_PROFILE].map(
-      //             (c) => c?.label
-      //           )
-      //       }
-      //     }
-      //   ]
-      // }
     ]
   },
   {
-    id: 'cost_of_sales',
-    title: 'Cost of sales',
+    id: 'operating_cost',
+    title: 'Operating Cost',
     datum: [],
     children: [
       {
-        id: 'optimiser',
-        title: 'Optimiser',
+        id: 'variable_o_and_m_cost',
+        title: 'Variable O&M Cost',
         datum: [
           {
-            id: 'optimiser_switch',
-            title: 'Optimiser switch',
-            type: PARAM_TYPE.SWITCH.ONOFF
-          },
-          {
-            id: 'optimiser_commission',
-            title: 'Optimiser commission of revenue',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.PERCENTAGE,
-            isShow: {
-              params: {
-                global: [],
-                local: ['optimiser_switch']
-              },
-              fn: ({ optimiser_switch }: { optimiser_switch: number }) =>
-                optimiser_switch == SWITCH_DATA[PARAM_TYPE.SWITCH.ONOFF].ON?.id
-            }
-          },
-
-          {
-            id: 'optimiser_upside_value',
-            title: 'Optimiser upside value',
-            type: PARAM_TYPE.CHOICE.UPSIDE,
-            isShow: {
-              params: {
-                global: [],
-                local: ['optimiser_switch']
-              },
-              fn: ({ optimiser_switch }: { optimiser_switch: number }) =>
-                optimiser_switch == SWITCH_DATA[PARAM_TYPE.SWITCH.ONOFF].ON?.id
-            }
-          },
-
-          {
-            id: 'optimiser_floor',
-            title: 'Floor',
+            id: 'staff_cost',
+            title: 'Staff Cost',
             type: PARAM_TYPE.GROUP,
             children: [
               {
-                id: 'start_date',
-                title: 'Start date',
-                type: PARAM_TYPE.DATE
+                id: 'staff_cost_inflaion_profile',
+                title: 'Inflation Profile',
+                type: PARAM_TYPE.CHOICE.PPA_CASE
               },
               {
-                id: 'end_date',
-                title: 'End date',
-                type: PARAM_TYPE.DATE
-              },
-              {
-                id: 'floor_price',
-                title: 'Floor price',
+                id: 'staff_cost_base_case',
+                title: 'Base Case',
                 type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.GBP_PER_KW_YEAR
-              }
-            ],
-            isShow: {
-              params: {
-                global: [],
-                local: ['optimiser_switch']
+                unit: PARAM_UNIT.USD_PER_MWH
+                // minValue: 10,
+                // maxValue: 50
               },
-              fn: ({ optimiser_switch }: { optimiser_switch: number }) =>
-                optimiser_switch == SWITCH_DATA[PARAM_TYPE.SWITCH.ONOFF].ON?.id
-            }
-          }
-        ]
-      },
-      {
-        id: 'ppa_fees',
-        title: 'PPA fee',
-        datum: [
-          {
-            id: 'ppa_fee_as_a_percent_of_revenue',
-            title: 'PPA fee as a percent of revenue',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.PERCENTAGE
-          }
-        ]
-      },
+              {
+                id: 'staff_cost_management_case',
+                title: 'Management Case',
+                type: PARAM_TYPE.NUMBER,
+                unit: PARAM_UNIT.USD_PER_MWH
 
-      {
-        id: 'auxilliary_losses',
-        title: 'Auxilliary losses',
-        datum: [
-          {
-            id: 'auxilliary_losses_inflation_profile',
-            title: 'Auxilliary losses inflation profile',
-            type: PARAM_TYPE.CHOICE.INFLATION
-          },
-          {
-            id: 'auxilliary_losses_inflation_base_year',
-            title: 'Auxilliary losses inflation base year',
-            type: PARAM_TYPE.INTEGER,
-            unit: PARAM_UNIT.YEAR,
-            minValue: INFLATION_START_YEAR,
-            maxValue: INFLATION_START_YEAR + 50
-          },
-          {
-            id: 'auxilliary_losses_factor_2',
-            title: 'Auxilliary losses factor - 2hour system',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.KW_PER_HOUR
-          },
-          {
-            id: 'auxilliary_losses_factor_4',
-            title: 'Auxilliary losses factor - 4hour system',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.KW_PER_HOUR
-          },
-          {
-            id: 'auxilliary_losses_factor_8',
-            title: 'Auxilliary losses factor - 8hour system',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.KW_PER_HOUR
-          }
-        ]
-      },
-      {
-        id: 'metering',
-        title: 'Metering',
-        datum: [
-          {
-            id: 'metering_inflation_profile',
-            title: 'Metering inflation profile',
-            type: PARAM_TYPE.CHOICE.INFLATION
-          },
-          {
-            id: 'metering_inflation_base_year',
-            title: 'Metering inflation base year',
-            type: PARAM_TYPE.INTEGER,
-            unit: PARAM_UNIT.YEAR,
-            minValue: INFLATION_START_YEAR,
-            maxValue: INFLATION_START_YEAR + 50
-          },
-          {
-            id: 'annual_cost_per_MW_2',
-            title: 'Annual cost per MW - 2hour system',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.GBP_PRO_1000_PER_MW
-          },
-          {
-            id: 'annual_cost_per_MW_4',
-            title: 'Annual cost per MW - 4hour system',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.GBP_PRO_1000_PER_MW
-          },
-          {
-            id: 'annual_cost_per_MW_8',
-            title: 'Annual cost per MW - 8hour system',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.GBP_PRO_1000_PER_MW
-          }
-        ]
-      },
+                // minValue: 10,
+                // maxValue: 50
+              },
+              {
+                id: 'staff_cost_upside_case',
+                title: 'Upside Case',
+                type: PARAM_TYPE.NUMBER,
+                unit: PARAM_UNIT.USD_PER_MWH
 
-      {
-        id: 'duos_charges',
-        title: 'DUoS charges',
-        datum: [
-          {
-            id: 'distribution_connection',
-            title: 'Distribution connection',
-            type: PARAM_TYPE.SWITCH.YESNO
-          },
-          {
-            id: 'dno',
-            title: 'DNO',
-            type: PARAM_TYPE.CHOICE.DNO
-          },
-          {
-            id: 'number_of_metering_points',
-            title: 'Number of metering points',
-            type: PARAM_TYPE.NUMBER
-          },
-          {
-            id: 'duos_inflation_profile',
-            title: 'DUoS inflation profile',
-            type: PARAM_TYPE.CHOICE.INFLATION
-          },
-          {
-            id: 'duos_inflation_base_year',
-            title: 'DUoS inflation base year',
-            type: PARAM_TYPE.INTEGER,
-            unit: PARAM_UNIT.YEAR,
-            minValue: INFLATION_START_YEAR,
-            maxValue: INFLATION_START_YEAR + 50
-          },
-          {
-            id: 'dnuos_data',
-            title: 'DUoS data',
-            type: PARAM_TYPE.TABLE,
-            unit: null,
-
-            stickyCols: {
-              type: 'function',
-              params: [],
-              fn: () => {
-                const dnoDataList = [
-                  'Import Fixed Charge',
-                  'Import Super Red Unit Charge',
-                  'Import Capacity Charge',
-                  'Export Fixed Charge',
-                  'GDUoS Generation Red',
-                  'Export Exceeded Capacity Charge'
-                ];
-                return dnoDataList;
-              }
-            },
-            stickyRows: {
-              type: 'function',
-              params: [],
-              fn: () => {
-                const result = [];
-                result.push('');
-                const len = CHOICE_DATA[PARAM_TYPE.CHOICE.DNO].length;
-                for (let i = 0; i < len; i++) {
-                  result.push(CHOICE_DATA[PARAM_TYPE.CHOICE.DNO][i].label);
-                }
-                return result;
-              }
-            }
-          }
-        ]
-      },
-      {
-        id: 'tnuos',
-        title: 'TNUoS',
-
-        children: [
-          {
-            id: 'triad_charges',
-            title: 'Triad charges',
-            datum: [
-              {
-                id: 'tnuos_charges_unavoidable_switch',
-                title: 'TNUoS charges unavoidable switch',
-                type: PARAM_TYPE.SWITCH.YESNO
-              },
-              {
-                id: 'anticipated_export_during_triads_as_a_percent_of_grid_connection',
-                title:
-                  'Anticipated export during triads as a percent of grid connection',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.PERCENTAGE
-              },
-              {
-                id: 'portion_of_triads_expected_november',
-                title: 'Portion of triads expected November',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.PERCENTAGE
-              },
-              {
-                id: 'portion_of_triads_expected_december',
-                title: 'Portion of triads expected December',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.PERCENTAGE
-              },
-              {
-                id: 'portion_of_triads_expected_january',
-                title: 'Portion of triads expected January',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.PERCENTAGE
-              },
-              {
-                id: 'portion_of_triads_expected_february',
-                title: 'Portion of triads expected February',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.PERCENTAGE
+                // minValue: 10,
+                // maxValue: 50
               }
             ]
           },
           {
-            id: 'export_charges',
-            title: 'Export charges',
-            datum: [
+            id: 'equipment',
+            title: 'Equipment',
+            type: PARAM_TYPE.GROUP,
+            children: [
               {
-                id: 'transmission_connection_switch',
-                title: 'Transmission connection switch',
-                type: PARAM_TYPE.SWITCH.YESNO
+                id: 'equipment_inflaion_profile',
+                title: 'Inflation Profile',
+                type: PARAM_TYPE.CHOICE.PPA_CASE
               },
               {
-                id: 'tnuos_zone',
-                title: 'TNUoS zone',
-                type: PARAM_TYPE.CHOICE.TNUOS_ZONE_LIST
-              },
-              {
-                id: 'local_circuits',
-                title: 'Local circuits',
-                type: PARAM_TYPE.CHOICE.LOCAL_CIRCUITS_ZONE
-              },
-              {
-                id: 'local_circuits_data',
-                title: 'Local circuits data',
-                type: PARAM_TYPE.TABLE,
-                stickyCols: {
-                  type: 'function',
-                  params: [],
-                  fn: () =>
-                    CHOICE_DATA[PARAM_TYPE.CHOICE.LOCAL_CIRCUITS_ZONE].map(
-                      (c) => c?.label
-                    )
-                },
-                stickyRows: {
-                  type: 'function',
-                  params: [],
-                  fn: () => {
-                    const result = [];
-                    result.push('');
-                    for (let i = 0; i < 51; i++) {
-                      result.push([TNUOS_DATA_START_YEAR + i]);
-                    }
-                    return result;
-                  }
-                }
-              },
-              {
-                id: 'local_substation_type',
-                title: 'Local substaion type',
-                type: PARAM_TYPE.CHOICE.SUBSTATION_TYPE
-              },
-              {
-                id: 'grid_connection_voltage',
-                title: 'Grid connection voltage',
-                type: PARAM_TYPE.CHOICE.GRID_CONNECTION_VOLTAGE
-              },
-              {
-                id: 'local_substation_type_by_voltage_data',
-                title: 'Local substation type by voltage',
-                type: PARAM_TYPE.TABLE,
-                stickyCols: {
-                  type: 'function',
-                  params: [],
-                  fn: () => LOCAL_SUBSTATION_TYPE
-                },
-                stickyRows: {
-                  type: 'function',
-                  params: [],
-                  fn: () => {
-                    const result = [];
-                    result.push('');
-
-                    CHOICE_DATA[PARAM_TYPE.CHOICE.GRID_CONNECTION_VOLTAGE].map(
-                      (d) => result.push(d.label)
-                    );
-                    return result;
-                  }
-                }
-              },
-
-              {
-                id: 'annual_load_factor',
-                title: 'Annual load factor',
+                id: 'equipment_base_case',
+                title: 'Base Case',
                 type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.PERCENTAGE
+                unit: PARAM_UNIT.USD_PER_MWH
+                // minValue: 10,
+                // maxValue: 50
+              },
+              {
+                id: 'equipment_management_case',
+                title: 'Management Case',
+                type: PARAM_TYPE.NUMBER,
+                unit: PARAM_UNIT.USD_PER_MWH
+
+                // minValue: 10,
+                // maxValue: 50
+              },
+              {
+                id: 'equipment_upside_case',
+                title: 'Upside Case',
+                type: PARAM_TYPE.NUMBER,
+                unit: PARAM_UNIT.USD_PER_MWH
+
+                // minValue: 10,
+                // maxValue: 50
               }
             ]
           },
           {
-            id: 'wider_tariff',
-            title: 'Wider tariff',
-            datum: [
+            id: 'consumables',
+            title: 'Consumables',
+            type: PARAM_TYPE.GROUP,
+            children: [
               {
-                id: 'system_peak_tariff_data',
-                title: 'System peak tariff data',
-                type: PARAM_TYPE.TABLE,
-                stickyCols: {
-                  type: 'function',
-                  params: [],
-                  fn: () =>
-                    CHOICE_DATA[PARAM_TYPE.CHOICE.TNUOS_ZONE_LIST].map(
-                      (c) => c?.label
-                    )
-                },
-                stickyRows: {
-                  type: 'function',
-                  params: [],
-                  fn: () => {
-                    const result = [];
-                    result.push('');
-                    for (let i = 0; i < 50; i++) {
-                      result.push([TNUOS_DATA_START_YEAR + i]);
-                    }
-                    return result;
-                  }
-                }
+                id: 'consumables_inflaion_profile',
+                title: 'Inflation Profile',
+                type: PARAM_TYPE.CHOICE.PPA_CASE
               },
               {
-                id: 'not_shared_round_tariff',
-                title: 'Not shared round tariff',
-                type: PARAM_TYPE.TABLE,
-                stickyCols: {
-                  type: 'function',
-                  params: [],
-                  fn: () =>
-                    CHOICE_DATA[PARAM_TYPE.CHOICE.TNUOS_ZONE_LIST].map(
-                      (c) => c?.label
-                    )
-                },
-                stickyRows: {
-                  type: 'function',
-                  params: [],
-                  fn: () => {
-                    const result = [];
-                    result.push('');
-                    for (let i = 0; i < 50; i++) {
-                      result.push([TNUOS_DATA_START_YEAR + i]);
-                    }
-                    return result;
-                  }
-                }
+                id: 'consumables_base_case',
+                title: 'Base Case',
+                type: PARAM_TYPE.NUMBER,
+                unit: PARAM_UNIT.USD_PER_MWH
+                // minValue: 10,
+                // maxValue: 50
               },
               {
-                id: 'shared_year_round_tariff',
-                title: 'Shared year round tariff',
-                type: PARAM_TYPE.TABLE,
-                stickyCols: {
-                  type: 'function',
-                  params: [],
-                  fn: () =>
-                    CHOICE_DATA[PARAM_TYPE.CHOICE.TNUOS_ZONE_LIST].map(
-                      (c) => c?.label
-                    )
-                },
-                stickyRows: {
-                  type: 'function',
-                  params: [],
-                  fn: () => {
-                    const result = [];
-                    result.push('');
-                    for (let i = 0; i < 50; i++) {
-                      result.push([TNUOS_DATA_START_YEAR + i]);
-                    }
-                    return result;
-                  }
-                }
+                id: 'consumables_management_case',
+                title: 'Management Case',
+                type: PARAM_TYPE.NUMBER,
+                unit: PARAM_UNIT.USD_PER_MWH
+
+                // minValue: 10,
+                // maxValue: 50
               },
               {
-                id: 'adjustment_tariff',
-                title: 'Adjustment tarifff',
-                type: PARAM_TYPE.TABLE,
-                stickyCols: {
-                  type: 'function',
-                  params: [],
-                  fn: () =>
-                    CHOICE_DATA[PARAM_TYPE.CHOICE.TNUOS_ZONE_LIST].map(
-                      (c) => c?.label
-                    )
-                },
-                stickyRows: {
-                  type: 'function',
-                  params: [],
-                  fn: () => {
-                    const result = [];
-                    result.push('');
-                    for (let i = 0; i < 50; i++) {
-                      result.push([TNUOS_DATA_START_YEAR + i]);
-                    }
-                    return result;
-                  }
-                }
+                id: 'consumables_upside_case',
+                title: 'Upside Case',
+                type: PARAM_TYPE.NUMBER,
+                unit: PARAM_UNIT.USD_PER_MWH
+
+                // minValue: 10,
+                // maxValue: 50
+              }
+            ]
+          },
+          {
+            id: 'fuel',
+            title: 'Fuel Cost',
+            type: PARAM_TYPE.GROUP,
+            children: [
+              {
+                id: 'fuel_inflaion_profile',
+                title: 'Inflation Profile',
+                type: PARAM_TYPE.CHOICE.PPA_CASE
+              },
+              {
+                id: 'fuel_base_case',
+                title: 'Base Case',
+                type: PARAM_TYPE.NUMBER,
+                unit: PARAM_UNIT.USD_PER_MWH
+                // minValue: 10,
+                // maxValue: 50
+              },
+              {
+                id: 'fuel_management_case',
+                title: 'Management Case',
+                type: PARAM_TYPE.NUMBER,
+                unit: PARAM_UNIT.USD_PER_MWH
+
+                // minValue: 10,
+                // maxValue: 50
+              },
+              {
+                id: 'fuel_upside_case',
+                title: 'Upside Case',
+                type: PARAM_TYPE.NUMBER,
+                unit: PARAM_UNIT.USD_PER_MWH
+
+                // minValue: 10,
+                // maxValue: 50
+              }
+            ]
+          },
+          {
+            id: 'transport',
+            title: 'Transport Cost',
+            type: PARAM_TYPE.GROUP,
+            children: [
+              {
+                id: 'transport_inflaion_profile',
+                title: 'Inflation Profile',
+                type: PARAM_TYPE.CHOICE.PPA_CASE
+              },
+              {
+                id: 'transport_base_case',
+                title: 'Base Case',
+                type: PARAM_TYPE.NUMBER,
+                unit: PARAM_UNIT.USD_PER_MWH
+                // minValue: 10,
+                // maxValue: 50
+              },
+              {
+                id: 'transport_management_case',
+                title: 'Management Case',
+                type: PARAM_TYPE.NUMBER,
+                unit: PARAM_UNIT.USD_PER_MWH
+
+                // minValue: 10,
+                // maxValue: 50
+              },
+              {
+                id: 'transport_upside_case',
+                title: 'Upside Case',
+                type: PARAM_TYPE.NUMBER,
+                unit: PARAM_UNIT.USD_PER_MWH
+
+                // minValue: 10,
+                // maxValue: 50
+              }
+            ]
+          },
+          {
+            id: 'maintenance',
+            title: 'Maintenance Cost',
+            type: PARAM_TYPE.GROUP,
+            children: [
+              {
+                id: 'maintenance_inflaion_profile',
+                title: 'Inflation Profile',
+                type: PARAM_TYPE.CHOICE.PPA_CASE
+              },
+              {
+                id: 'maintenance_base_case',
+                title: 'Base Case',
+                type: PARAM_TYPE.NUMBER,
+                unit: PARAM_UNIT.USD_PER_MWH
+                // minValue: 10,
+                // maxValue: 50
+              },
+              {
+                id: 'maintenance_management_case',
+                title: 'Management Case',
+                type: PARAM_TYPE.NUMBER,
+                unit: PARAM_UNIT.USD_PER_MWH
+
+                // minValue: 10,
+                // maxValue: 50
+              },
+              {
+                id: 'maintenance_upside_case',
+                title: 'Upside Case',
+                type: PARAM_TYPE.NUMBER,
+                unit: PARAM_UNIT.USD_PER_MWH
+
+                // minValue: 10,
+                // maxValue: 50
+              }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'other_fixed_costs',
+        title: 'Other Fixed Costs',
+        datum: [
+          {
+            id: 'spv_costs',
+            title: 'SPV Cost',
+            type: PARAM_TYPE.GROUP,
+            children: [
+              {
+                id: 'spv_inflaion_profile',
+                title: 'Inflation Profile',
+                type: PARAM_TYPE.CHOICE.PPA_CASE
+              },
+              {
+                id: 'spv_annual_cost',
+                title: 'Annual Cost',
+                type: PARAM_TYPE.NUMBER,
+                unit: PARAM_UNIT.USD_PRO_1000
+                // minValue: 10,
+                // maxValue: 50
+              }
+            ]
+          },
+          {
+            id: 'insurance',
+            title: 'Insurance Cost',
+            type: PARAM_TYPE.GROUP,
+            children: [
+              {
+                id: 'insurance_inflaion_profile',
+                title: 'Inflation Profile',
+                type: PARAM_TYPE.CHOICE.PPA_CASE
+              },
+              {
+                id: 'insurance_annual_cost',
+                title: 'Annual Cost',
+                type: PARAM_TYPE.NUMBER,
+                unit: PARAM_UNIT.USD_PRO_1000
+                // minValue: 10,
+                // maxValue: 50
+              }
+            ]
+          },
+          {
+            id: 'land_lease',
+            title: 'Land Lease',
+            type: PARAM_TYPE.GROUP,
+            children: [
+              {
+                id: 'land_inflaion_profile',
+                title: 'Inflation Profile',
+                type: PARAM_TYPE.CHOICE.PPA_CASE
+              },
+              {
+                id: 'land_annual_cost',
+                title: 'Annual Cost',
+                type: PARAM_TYPE.NUMBER,
+                unit: PARAM_UNIT.USD_PRO_1000
+                // minValue: 10,
+                // maxValue: 50
+              }
+            ]
+          },
+          {
+            id: 'security',
+            title: 'Security Cost',
+            type: PARAM_TYPE.GROUP,
+            children: [
+              {
+                id: 'security_inflaion_profile',
+                title: 'Inflation Profile',
+                type: PARAM_TYPE.CHOICE.PPA_CASE
+              },
+              {
+                id: 'security_annual_cost',
+                title: 'Annual Cost',
+                type: PARAM_TYPE.NUMBER,
+                unit: PARAM_UNIT.USD_PRO_1000
+                // minValue: 10,
+                // maxValue: 50
+              }
+            ]
+          },
+          {
+            id: 'community_payment',
+            title: 'Community Payment',
+            type: PARAM_TYPE.GROUP,
+            children: [
+              {
+                id: 'community_inflaion_profile',
+                title: 'Inflation Profile',
+                type: PARAM_TYPE.CHOICE.PPA_CASE
+              },
+              {
+                id: 'community_annual_cost',
+                title: 'Annual Cost',
+                type: PARAM_TYPE.NUMBER,
+                unit: PARAM_UNIT.USD_PRO_1000
+                // minValue: 10,
+                // maxValue: 50
+              }
+            ]
+          },
+          {
+            id: 'management_fee',
+            title: 'Management Fee',
+            type: PARAM_TYPE.GROUP,
+            children: [
+              {
+                id: 'management_inflaion_profile',
+                title: 'Inflation Profile',
+                type: PARAM_TYPE.CHOICE.PPA_CASE
+              },
+              {
+                id: 'management_annual_cost',
+                title: 'Annual Cost',
+                type: PARAM_TYPE.NUMBER,
+                unit: PARAM_UNIT.USD_PRO_1000
+                // minValue: 10,
+                // maxValue: 50
               }
             ]
           }
@@ -1607,1267 +1215,1561 @@ export const INPUT_PARAMS: IInputParameter[] = [
     ]
   },
   {
-    id: 'administrative_costs',
-    title: 'Administrative costs',
+    id: 'financing',
+    title: 'Financing',
     datum: [
-      // {
-      //   id: 'opex_sensitivity',
-      //   title: 'Opex sensitivity',
-      //   type: PARAM_TYPE.SWITCH.ONOFF
-      // },
-      // {
-      //   id: 'opex_sensitivity_magnitude',
-      //   title: 'Opex sensitivity magnitude',
-      //   type: PARAM_TYPE.NUMBER,
-      //   unit: PARAM_UNIT.PERCENTAGE,
-      //   isShow: {
-      //     params: {
-      //       global: [],
-      //       local: ['opex_sensitivity']
-      //     },
-      //     fn: ({ opex_sensitivity }: { opex_sensitivity: number }) =>
-      //       opex_sensitivity == SWITCH_DATA[PARAM_TYPE.SWITCH.ONOFF].ON?.id
-      //   }
-      // }
-    ],
-    children: [
       {
-        id: 'land_rent',
-        title: 'Land rent',
-        datum: [
+        id: 'debt_equity_ratio',
+        title: 'Debt Equity Ratio',
+        type: PARAM_TYPE.GROUP,
+        children: [
           {
-            id: 'land_rent_switch',
-            title: 'Land rent switch',
-            type: PARAM_TYPE.SWITCH.ONOFF
+            id: 'debt_ratio',
+            title: 'Debt Ratio',
+            type: PARAM_TYPE.NUMBER,
+            unit: PARAM_UNIT.PERCENTAGE
           },
           {
-            id: 'land_rent_sensitivity',
-            title: 'Land rent sensitivity',
-            type: PARAM_TYPE.SWITCH.ONOFF,
-            isShow: {
-              params: {
-                global: [],
-                local: ['land_rent_switch']
-              },
-              fn: ({ land_rent_switch }: { land_rent_switch: number }) =>
-                land_rent_switch == SWITCH_DATA[PARAM_TYPE.SWITCH.ONOFF].ON?.id
-            }
-          },
-          {
-            id: 'land_rent_sensitivity_magnitude',
-            title: 'Land rent sensitivity_magnitude',
+            id: 'equity_ratio',
+            title: 'Equity Ratio',
             type: PARAM_TYPE.NUMBER,
             unit: PARAM_UNIT.PERCENTAGE,
-            isShow: {
-              params: {
-                global: [],
-                local: ['land_rent_sensitivity', 'land_rent_switch']
-              },
-              fn: ({
-                land_rent_sensitivity,
-                land_rent_switch
-              }: {
-                land_rent_sensitivity: number;
-                land_rent_switch: number;
-              }) =>
-                land_rent_sensitivity * land_rent_switch ==
-                SWITCH_DATA[PARAM_TYPE.SWITCH.ONOFF].ON?.id
-            }
-          },
-          {
-            id: 'land_rent_inflation_profile',
-            title: 'Land rent inflation profile',
-            type: PARAM_TYPE.CHOICE.INFLATION,
-            isShow: {
-              params: {
-                global: [],
-                local: ['land_rent_switch']
-              },
-              fn: ({ land_rent_switch }: { land_rent_switch: number }) =>
-                land_rent_switch == SWITCH_DATA[PARAM_TYPE.SWITCH.ONOFF].ON?.id
-            }
-          },
-          {
-            id: 'land_rent_inflation_base_year',
-            title: 'Land rent inflation base year',
-            type: PARAM_TYPE.INTEGER,
-            unit: PARAM_UNIT.YEAR,
-            minValue: INFLATION_START_YEAR,
-            maxValue: INFLATION_START_YEAR + 50,
-
-            isShow: {
-              params: {
-                global: [],
-                local: ['land_rent_switch']
-              },
-              fn: ({ land_rent_switch }: { land_rent_switch: number }) =>
-                land_rent_switch == SWITCH_DATA[PARAM_TYPE.SWITCH.ONOFF].ON?.id
-            }
-          },
-          {
-            id: 'land_rent_provision_months',
-            title: 'Land rent provision months',
-            type: PARAM_TYPE.INTEGER,
-            unit: PARAM_UNIT.MONTHS,
-            minValue: 0,
-            isShow: {
-              params: {
-                global: [],
-                local: ['land_rent_switch']
-              },
-              fn: ({ land_rent_switch }: { land_rent_switch: number }) =>
-                land_rent_switch == SWITCH_DATA[PARAM_TYPE.SWITCH.ONOFF].ON?.id
-            }
-          }
-        ],
-        children: [
-          {
-            id: 'annual_land_rent',
-            title: 'Annual land rent',
-            datum: [
-              {
-                id: 'annual_land_rent_per_acre_charge',
-                title: 'Annual land rent per acre charge',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.GBP
-              },
-              {
-                id: 'portion_payable_during_construction',
-                title: 'Portion payable during construction',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.PERCENTAGE,
-                defaultValue: 50
-              },
-              {
-                id: 'portion_payable_during_operations',
-                title: 'Portion payable during operations',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.PERCENTAGE,
-                defaultValue: 100
-              },
-              {
-                id: 'portion_payable_during_decommissioning',
-                title: 'Portion payable during decommissioning',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.PERCENTAGE,
-                defaultValue: 50
-              }
-            ]
-          },
-          {
-            id: 'bespoke_cases_capacity_charge',
-            title: 'Bespoke cases - capacity charge',
-            datum: [
-              {
-                id: 'annual_land_rent_per_mw_charge',
-                title: 'Annual land rent per MW charge',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.GBP_PRO_1000_PER_MW
-              },
-              {
-                id: 'portion_payable_during_construction',
-                title: 'Portion payable during construction',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.PERCENTAGE
-              },
-              {
-                id: 'portion_payable_during_operations',
-                title: 'Portion payable during operations',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.PERCENTAGE
-              },
-              {
-                id: 'portion_payable_during_decommissioning',
-                title: 'Portion payable during decommissioning',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.PERCENTAGE
-              }
-            ]
-          },
-          {
-            id: 'bespoke_cases_land_rent_per_acre_and_option_charge',
-            title: 'Bespoke cases - land rent per acre and option charge',
-            datum: [
-              {
-                id: 'annual_land_option_rent_per_acre_charge',
-                title: 'Annual land option rent per acre charge',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.GBP
-              },
-              {
-                id: 'option_rent_start_date',
-                title: 'Option rent start date',
-                type: PARAM_TYPE.DATE
-              },
-              {
-                id: 'option_rent_end_date',
-                title: 'Option rent end date',
-                type: PARAM_TYPE.DATE
-              },
-              {
-                id: 'annual_land_post_option_rent_per_acre_charge',
-                title: 'Annual land post-option rent per acre charge',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.GBP
-              },
-              {
-                id: 'post_option_rent_start_date',
-                title: 'Post-option rent start date',
-                type: PARAM_TYPE.DATE
-              },
-              {
-                id: 'post_option_rent_end_date',
-                title: 'Post-option rent end date',
-                type: PARAM_TYPE.DATE
-              }
-            ]
-          }
-        ]
-      },
-      {
-        id: 'o_and_m',
-        title: 'O&M',
-        children: [
-          {
-            id: 'fixed',
-            title: 'Fixed',
-            datum: [
-              {
-                id: 'annual_fixed_o_and_m_2',
-                title: 'Annual fixed O&M - 2 hour system',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.GBP
-              },
-              {
-                id: 'annual_fixed_o_and_m_4',
-                title: 'Annual fixed O&M - 4 hour system',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.GBP
-              },
-              {
-                id: 'annual_fixed_o_and_m_8',
-                title: 'Annual fixed O&M - 8 hour system',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.GBP
-              },
-              {
-                id: 'inflation_profile',
-                title: 'Inflation profile',
-                type: PARAM_TYPE.CHOICE.INFLATION
-              },
-              {
-                id: 'inflation_base_year',
-                title: 'Inflation base year',
-                type: PARAM_TYPE.INTEGER,
-                unit: PARAM_UNIT.YEAR,
-                minValue: INFLATION_START_YEAR,
-                maxValue: INFLATION_START_YEAR + 50
-              }
-            ]
-          },
-          {
-            id: 'variable',
-            title: 'Variable',
-            datum: [
-              {
-                id: 'variable_o_and_m_2',
-                title: 'Variable O&M - 2 hour system',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.GBP_PRO_1000_PER_MW
-              },
-              {
-                id: 'variable_o_and_m_4',
-                title: 'Variable O&M - 4 hour system',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.GBP_PRO_1000_PER_MW
-              },
-              {
-                id: 'variable_o_and_m_8',
-                title: 'Variable O&M - 8 hour system',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.GBP_PRO_1000_PER_MW
-              },
-              {
-                id: 'inflation_profile',
-                title: 'Inflation profile',
-                type: PARAM_TYPE.CHOICE.INFLATION
-              },
-              {
-                id: 'inflation_base_year',
-                title: 'Inflation base year',
-                type: PARAM_TYPE.INTEGER,
-                unit: PARAM_UNIT.YEAR,
-                minValue: INFLATION_START_YEAR,
-                maxValue: INFLATION_START_YEAR + 50
-              }
-            ]
-          }
-        ]
-      },
-      {
-        id: 'asset_management',
-        title: 'Asset management',
-        datum: [
-          {
-            id: 'inflation',
-            title: 'Inflation',
-            type: PARAM_TYPE.GROUP,
-            children: [
-              {
-                id: 'inflation_profile_1',
-                title: 'Inflation profile - period 1',
-                type: PARAM_TYPE.CHOICE.INFLATION
-              },
-              {
-                id: 'inflation_base_year_1',
-                title: 'Inflation base year - period 1',
-                type: PARAM_TYPE.INTEGER,
-                unit: PARAM_UNIT.YEAR,
-                defaultValue: 2024,
-                minValue: INFLATION_START_YEAR,
-                maxValue: INFLATION_START_YEAR + 50
-              },
-              {
-                id: 'inflation_profile_2',
-                title: 'Inflation profile - period 2',
-                type: PARAM_TYPE.CHOICE.INFLATION
-              },
-              {
-                id: 'inflation_base_year_2',
-                title: 'Inflation base year - period 2',
-                type: PARAM_TYPE.INTEGER,
-                unit: PARAM_UNIT.YEAR,
-                minValue: INFLATION_START_YEAR,
-                maxValue: INFLATION_START_YEAR + 50
-              }
-            ]
-          },
-          {
-            id: 'duration',
-            title: 'Duration',
-            type: PARAM_TYPE.GROUP,
-            children: [
-              {
-                id: 'start_date_period_1',
-                title: 'Start date - period 1',
-                type: PARAM_TYPE.DATE
-              },
-              {
-                id: 'end_date_period_1',
-                title: 'End date - period 1',
-                type: PARAM_TYPE.DATE
-              },
-              {
-                id: 'start_date_period_2',
-                title: 'Start date - period 2',
-                type: PARAM_TYPE.DATE
-              },
-              {
-                id: 'end_date_period_2',
-                title: 'End date - period 2',
-                type: PARAM_TYPE.DATE
-              }
-            ]
-          },
-          {
-            id: 'real_time_management_percentage_period_1',
-            title: 'Real time management - period 1',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.PERCENTAGE
-          },
-          {
-            id: 'maintenance_percentage_period_1',
-            title: 'Maintenance - period 1',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.PERCENTAGE
-          },
-          {
-            id: 'real_time_management_percentage_period_2',
-            title: 'Real time management - period 2',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.PERCENTAGE
-          },
-          {
-            id: 'maintenance_percentage_period_2',
-            title: 'Maintenance - period 2',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.PERCENTAGE
-          },
-          {
-            id: 'real_time_management_period_1',
-            title: 'Real time management - period 1',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.GBP_PRO_1000_PER_MW,
-            defaultValue: 1.0
-          },
-          {
-            id: 'maintenance_period_1',
-            title: 'Maintenance - period 1',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.GBP_PRO_1000_PER_MW,
-            defaultValue: 2.0
-          },
-          {
-            id: 'real_time_management_period_2',
-            title: 'Real time management - period 2',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.GBP_PRO_1000_PER_MW
-          },
-          {
-            id: 'maintenance_period_2',
-            title: 'Maintenance - period 2',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.GBP_PRO_1000_PER_MW
-          }
-        ]
-      },
-      {
-        id: 'insurance',
-        title: 'Insurance',
-        datum: [
-          {
-            id: 'inflation_profile',
-            title: 'Inflation profile',
-            type: PARAM_TYPE.CHOICE.INFLATION
-          },
-          {
-            id: 'inflation_base_year_operations',
-            title: 'Inflation base year - operations',
-            type: PARAM_TYPE.INTEGER,
-            unit: PARAM_UNIT.YEAR,
-            defaultValue: 2024,
-            minValue: INFLATION_START_YEAR,
-            maxValue: INFLATION_START_YEAR + 50
-          },
-          {
-            id: 'annual_fees_per_mw_operations',
-            title: 'Annual fees per MW - operations',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.GBP_PRO_1000_PER_MW
-          }
-        ]
-      },
-      {
-        id: 'community_benefit',
-        title: 'Community benefit',
-        datum: [
-          {
-            id: 'inflation_profile',
-            title: 'Inflation profile',
-            type: PARAM_TYPE.CHOICE.INFLATION
-          },
-          {
-            id: 'inflation_base_year',
-            title: 'Inflation base year',
-            type: PARAM_TYPE.INTEGER,
-            unit: PARAM_UNIT.YEAR,
-            defaultValue: 2024,
-            minValue: INFLATION_START_YEAR,
-            maxValue: INFLATION_START_YEAR + 50
-          },
-          {
-            id: 'annual_fixed_fund_to_community_benefit',
-            title: 'Annual fixed fund to community benefit',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.GBP_PRO_1000,
-            defaultValue: 1000
-          },
-          {
-            id: 'annual_mwh_to_community_benefit',
-            title: 'Annual MWh to community benefit',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.MWH,
-            defaultValue: 0
-          }
-        ]
-      },
-      {
-        id: 'water_rates',
-        title: 'Water rates',
-        datum: [
-          {
-            id: 'inflation_profile',
-            title: 'Inflation profile',
-            type: PARAM_TYPE.CHOICE.INFLATION
-          },
-          {
-            id: 'inflation_base_year',
-            title: 'Inflation base year',
-            type: PARAM_TYPE.INTEGER,
-            unit: PARAM_UNIT.YEAR,
-            minValue: INFLATION_START_YEAR,
-            maxValue: INFLATION_START_YEAR + 50
-          },
-          {
-            id: 'annual_fees_per_mw',
-            title: 'Annual fees per MW',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.GBP_PRO_1000_PER_MW
-          }
-        ]
-      },
-      {
-        id: 'business_rates',
-        title: 'Business rates',
-        datum: [
-          {
-            id: 'inflation_profile',
-            title: 'Inflation profile',
-            type: PARAM_TYPE.CHOICE.INFLATION
-          },
-          {
-            id: 'inflation_base_year',
-            title: 'Inflation base year',
-            type: PARAM_TYPE.INTEGER,
-            unit: PARAM_UNIT.YEAR,
-            minValue: INFLATION_START_YEAR,
-            maxValue: INFLATION_START_YEAR + 50
-          },
-          {
-            id: 'annual_fees_per_mw',
-            title: 'Annual fees per MW',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.GBP_PRO_1000_PER_MW
-          }
-        ]
-      },
-      {
-        id: 'extended_warranty',
-        title: 'Extended warranty',
-        datum: [
-          {
-            id: 'extended_warranty_switch',
-            title: 'Extended warranty switch',
-            type: PARAM_TYPE.SWITCH.ONOFF
-          },
-          {
-            id: 'inflation_profile',
-            title: 'Inflation profile',
-            type: PARAM_TYPE.CHOICE.INFLATION,
-            isShow: {
-              params: {
-                global: [],
-                local: ['extended_warranty_switch']
-              },
-              fn: ({
-                extended_warranty_switch
-              }: {
-                extended_warranty_switch: number;
-              }) =>
-                extended_warranty_switch ==
-                SWITCH_DATA[PARAM_TYPE.SWITCH.ONOFF].ON?.id
-            }
-          },
-          {
-            id: 'inflation_base_year',
-            title: 'Inflation base year',
-            type: PARAM_TYPE.INTEGER,
-            unit: PARAM_UNIT.YEAR,
-            minValue: INFLATION_START_YEAR,
-            maxValue: INFLATION_START_YEAR + 50,
-            isShow: {
-              params: {
-                global: [],
-                local: ['extended_warranty_switch']
-              },
-              fn: ({
-                extended_warranty_switch
-              }: {
-                extended_warranty_switch: number;
-              }) =>
-                extended_warranty_switch ==
-                SWITCH_DATA[PARAM_TYPE.SWITCH.ONOFF].ON?.id
-            }
-          },
-          {
-            id: 'length_of_warranty',
-            title: 'Length of warranty',
-            type: PARAM_TYPE.INTEGER,
-            unit: PARAM_UNIT.YEARS,
-            minValue: 1,
-            isShow: {
-              params: {
-                global: [],
-                local: ['extended_warranty_switch']
-              },
-              fn: ({
-                extended_warranty_switch
-              }: {
-                extended_warranty_switch: number;
-              }) =>
-                extended_warranty_switch ==
-                SWITCH_DATA[PARAM_TYPE.SWITCH.ONOFF].ON?.id
-            }
-          },
-          {
-            id: 'annual_fees_per_mw_2',
-            title: 'Annual fees per MW - 2 hour system',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.GBP_PRO_1000_PER_MW,
-            defaultValue: 4.077,
-            isShow: {
-              params: {
-                global: [],
-                local: ['extended_warranty_switch']
-              },
-              fn: ({
-                extended_warranty_switch
-              }: {
-                extended_warranty_switch: number;
-              }) =>
-                extended_warranty_switch ==
-                SWITCH_DATA[PARAM_TYPE.SWITCH.ONOFF].ON?.id
-            }
-          },
-          {
-            id: 'annual_fees_per_mw_4',
-            title: 'Annual fees per MW - 4 hour system',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.GBP_PRO_1000_PER_MW,
-            defaultValue: 8.153,
-            isShow: {
-              params: {
-                global: [],
-                local: ['extended_warranty_switch']
-              },
-              fn: ({
-                extended_warranty_switch
-              }: {
-                extended_warranty_switch: number;
-              }) =>
-                extended_warranty_switch ==
-                SWITCH_DATA[PARAM_TYPE.SWITCH.ONOFF].ON?.id
-            }
-          },
-          {
-            id: 'annual_fees_per_mw_8',
-            title: 'Annual fees per MW - 8 hour system',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.GBP_PRO_1000_PER_MW,
-            defaultValue: 16.307,
-            isShow: {
-              params: {
-                global: [],
-                local: ['extended_warranty_switch']
-              },
-              fn: ({
-                extended_warranty_switch
-              }: {
-                extended_warranty_switch: number;
-              }) =>
-                extended_warranty_switch ==
-                SWITCH_DATA[PARAM_TYPE.SWITCH.ONOFF].ON?.id
-            }
-          }
-        ]
-      },
-      {
-        id: 'site_security',
-        title: 'Site secuirty',
-        datum: [
-          {
-            id: 'inflation_profile',
-            title: 'Inflation profile',
-            type: PARAM_TYPE.CHOICE.INFLATION
-          },
-          {
-            id: 'inflation_base_year',
-            title: 'Inflation base year',
-            type: PARAM_TYPE.INTEGER,
-            unit: PARAM_UNIT.YEAR,
-            defaultValue: 2024,
-            minValue: INFLATION_START_YEAR,
-            maxValue: INFLATION_START_YEAR + 50
-          },
-          {
-            id: 'annual_fees_per_mw',
-            title: 'Annual fees per MW',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.GBP_PRO_1000_PER_MW,
-            defaultValue: 0.03
-          }
-        ]
-      },
-      {
-        id: 'easement_costs',
-        title: 'Easement costs',
-        datum: [
-          {
-            id: 'inflation_profile',
-            title: 'Inflation profile',
-            type: PARAM_TYPE.CHOICE.INFLATION
-          },
-          {
-            id: 'inflation_base_year',
-            title: 'Inflation base year',
-            type: PARAM_TYPE.INTEGER,
-            unit: PARAM_UNIT.YEAR,
-            defaultValue: 2024,
-            minValue: INFLATION_START_YEAR,
-            maxValue: INFLATION_START_YEAR + 50
-          },
-          {
-            id: 'annual_cost',
-            title: 'Annual cost',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.GBP_PRO_1000_PER_KM
-          },
-          {
-            id: 'cable_length',
-            title: 'Cable length',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.KM
-          }
-        ]
-      },
-      {
-        id: 'legal_costs',
-        title: 'Legal costs',
-        datum: [
-          {
-            id: 'inflation_profile',
-            title: 'Inflation profile',
-            type: PARAM_TYPE.CHOICE.INFLATION
-          },
-          {
-            id: 'inflation_base_year',
-            title: 'Inflation base year',
-            type: PARAM_TYPE.INTEGER,
-            unit: PARAM_UNIT.YEAR,
-            defaultValue: 2024,
-            minValue: INFLATION_START_YEAR,
-            maxValue: INFLATION_START_YEAR + 50
-          },
-          {
-            id: 'annual_cost',
-            title: 'Annual cost',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.GBP_PRO_1000,
-            defaultValue: 30
-          }
-        ]
-      },
-      {
-        id: 'other_administrative_costs',
-        title: 'Other administrative costs',
-        datum: [
-          {
-            id: 'inflation_profile',
-            title: 'Inflation profile',
-            type: PARAM_TYPE.CHOICE.INFLATION
-          },
-          {
-            id: 'inflation_base_year',
-            title: 'Inflation base year',
-            type: PARAM_TYPE.INTEGER,
-            unit: PARAM_UNIT.YEAR,
-            defaultValue: 2024,
-            minValue: INFLATION_START_YEAR,
-            maxValue: INFLATION_START_YEAR + 50
-          },
-          {
-            id: 'annual_accounting_fees_and_audit',
-            title: 'Annual accounting fees and audit',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.GBP_PRO_1000,
-            defaultValue: 7.5
-          },
-          {
-            id: 'annual_it',
-            title: 'Annual IT',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.GBP_PRO_1000,
-            defaultValue: 7.5
-          },
-          {
-            id: 'annual_other_cost',
-            title: 'Annual other cost',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.GBP_PRO_1000,
-            defaultValue: 7.5
-          },
-          {
-            id: 'total_costs',
-            title: 'Total Costs',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.GBP_PRO_1000,
             renderValue: {
               params: {
-                local: [
-                  'annual_accounting_fees_and_audit',
-                  'annual_it',
-                  'annual_other_cost'
-                ],
-                global: []
+                global: [],
+                local: ['debt_ratio']
               },
-              fn: ({
-                annual_accounting_fees_and_audit = '0',
-                annual_it = '0',
-                annual_other_cost = '0'
-              }: {
-                annual_accounting_fees_and_audit: string;
-                annual_it: string;
-                annual_other_cost: string;
-              }) => {
-                let val = parseFloat(annual_accounting_fees_and_audit) || 0;
-                val += parseFloat(annual_it);
-                val += parseFloat(annual_other_cost);
-                return val;
-              }
+              fn: ({ debt_ratio }: { debt_ratio: number }) => 100 - debt_ratio
             }
           }
         ]
       },
       {
-        id: 'intercompany_expense',
-        title: 'Intercompany expense',
-        datum: [
-          {
-            id: 'inflation_profile',
-            title: 'Inflation profile',
-            type: PARAM_TYPE.CHOICE.INFLATION
-          },
-          {
-            id: 'inflation_base_year',
-            title: 'Inflation base year',
-            type: PARAM_TYPE.INTEGER,
-            unit: PARAM_UNIT.YEAR,
-            minValue: INFLATION_START_YEAR,
-            maxValue: INFLATION_START_YEAR + 50
-          },
-          {
-            id: 'annual_cost',
-            title: 'Annual cost',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.GBP_PRO_1000
-          }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'other_inputs',
-    title: 'Other inputs',
-    datum: [],
-    children: [
-      {
-        id: 'working_capital',
-        title: 'Working capital',
-        datum: [
-          {
-            id: 'debtor_days',
-            title: 'Debtor days',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.DAYS,
-            defaultValue: 90
-          },
-          {
-            id: 'creditor_days',
-            title: 'Creditor days',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.DAYS,
-            defaultValue: 90
-          }
-        ]
-      },
-      {
-        id: 'national_grid_securities',
-        title: 'National grid securities',
-        datum: [
-          {
-            id: 'security_choice',
-            title: 'Security choice',
-            type: PARAM_TYPE.CHOICE.SECURITY
-          },
-          {
-            id: 'attributable_security_choice',
-            title: 'Attributable security choice',
-            type: PARAM_TYPE.CHOICE.ATTRIBUTABLE_SECURITY
-          },
-          {
-            id: 'attributable_security_choice_data',
-            title: 'Attributable security choice data',
-            type: PARAM_TYPE.TABLE,
-            unit: null,
-            stickyCols: {
-              type: 'function',
-              params: ['securityChoice'],
-              fn: () =>
-                CHOICE_DATA[PARAM_TYPE.CHOICE.ATTRIBUTABLE_SECURITY].map(
-                  (c) => c?.label
-                )
-            },
-
-            stickyRows: {
-              type: 'function',
-              params: [],
-              fn: () => {
-                const result = [];
-                result.push(['']);
-                for (let i = 8; i > 0; i--) {
-                  result.push([`COD - ${i * 6}`]);
-                }
-                return result;
-              }
-            }
-          },
-          {
-            id: 'total_attributable_costs',
-            title: 'Total attributable costs',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.GBP_PRO_1000,
-            defaultValue: 4800
-          },
-          {
-            id: 'annual_wider_cancellation_costs',
-            title: 'Annual wider cancellation costs',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.GBP_PRO_1000,
-            defaultValue: 401
-          },
-          {
-            id: 'premium_fee',
-            title: 'Premium fee',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.PERCENTAGE,
-            defaultValue: 1.5
-          }
-        ]
-      },
-      {
-        id: 'financing',
-        title: 'Financing',
-        datum: [],
+        id: 'construction_debt_assumptions',
+        title: 'Construction Debt Assumptions',
+        type: PARAM_TYPE.GROUP,
         children: [
           {
-            id: 'cash_requirements',
-            title: 'Cash requirements',
-            datum: [
-              {
-                id: 'minimum_cash_balance',
-                title: 'Minimum cash balance',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.GBP_PRO_1000,
-                defaultValue: 10
-              },
-              {
-                id: 'cash_requirement_look_forward_restriction',
-                title: 'Cash requirement look-forward restriction',
-                type: PARAM_TYPE.INTEGER,
-                unit: PARAM_UNIT.MONTHS,
-                minValue: 0,
-                defaultValue: 12
-              }
-            ]
+            id: 'construction_debt_tenure',
+            title: 'Construction Debt Tenure',
+            type: PARAM_TYPE.INTEGER,
+            unit: PARAM_UNIT.YEARS
           },
+          // {
+          //   id: 'repayment_start_date',
+          //   title: 'Repayment Start Date',
+          //   type: PARAM_TYPE.DATE
+          // },
+          // {
+          //   id: 'last_start_date',
+          //   title: 'Last Start Date',
+          //   type: PARAM_TYPE.DATE,
+          //   renderValue: {
+          //     params: {
+          //       global: [],
+          //       local: ['repayment_start_date']
+          //     },
+          //     fn: ({
+          //       repayment_start_date
+          //     }: {
+          //       repayment_start_date: string;
+          //     }) => 100 - 10
+          //   }
+          // },
           {
-            id: 'gearing_by_capex_type',
-            title: 'Gearing by capex type',
-            datum: [
-              {
-                id: 'bess_augmentation',
-                title: 'BESS augmentation',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.PERCENTAGE,
-                defaultValue: 0
-              },
-              {
-                id: 'bess_replacement_1',
-                title: 'BESS replacement1',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.PERCENTAGE,
-                defaultValue: 70
-              },
-              {
-                id: 'bess_replacement_2',
-                title: 'BESS replacement2',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.PERCENTAGE,
-                defaultValue: 70
-              },
-              {
-                id: 'gearing_excluding_batteries',
-                title: 'Gearing excluding batteries',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.PERCENTAGE,
-                defaultValue: 0
-              }
-            ]
-          },
-          {
-            id: 'senior_debt',
-            title: 'Senior debt',
-            datum: [
-              {
-                id: 'senior_debt_interest',
-                title: 'Senior debt interest',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.PERCENTAGE_PA,
-                defaultValue: 8.25
-              },
-              {
-                id: 'cash_sweep_percentage_of_available_cash',
-                title:
-                  'Cash sweep % of available cash (senior debt repayment profile)',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.PERCENTAGE,
-                defaultValue: 100
-              },
-              {
-                id: 'minimum_allowed_dscr_half_yearly',
-                title: 'Minimum allowed DSCR (half-yearly)',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.PERCENTAGE,
-                defaultValue: 0
-              },
-              {
-                id: 'minimum_allowed_dscr_annual',
-                title: 'Minimum allowed DSCR (annual)',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.PERCENTAGE,
-                defaultValue: 0
-              }
-            ]
-          },
-          {
-            id: 'equity',
-            title: 'Equity',
-            datum: [
-              {
-                id: 'equity_split_to_sharholder_loan',
-                title: 'Equity split to shareholder loan',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.PERCENTAGE,
-                defaultValue: 100
-              },
-              {
-                id: 'equity_split_to_share_capital',
-                title: 'Equity split to share capital',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.PERCENTAGE,
-                renderValue: {
-                  params: {
-                    global: [],
-                    local: ['equity_split_to_sharholder_loan']
-                  },
-                  fn: ({
-                    equity_split_to_sharholder_loan
-                  }: {
-                    equity_split_to_sharholder_loan: number;
-                  }) => 100 - equity_split_to_sharholder_loan
-                }
-              },
-              {
-                id: 'shareholder_loan_interest',
-                title: 'Shareholder loan interest',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.PERCENTAGE_PA,
-                defaultValue: 8
-              },
-              {
-                id: 'shareholder_loan_cash_sweep_percentage_of_available_cash',
-                title: 'Shareholder loan cash sweep % of available cash',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.PERCENTAGE,
-                defaultValue: 100
-              },
-              {
-                id: 'share_capital_cash_sweep_percentage_of_available_cash',
-                title: 'Share capital cash sweep % of available cash',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.PERCENTAGE
-              },
-              {
-                id: 'dividends_cash_sweep_percentage_of_available_cash',
-                title: 'Dividends cash sweep % of available cash',
-                type: PARAM_TYPE.NUMBER,
-                unit: PARAM_UNIT.PERCENTAGE,
-                defaultValue: 0
-              }
-            ]
-          }
-        ]
-      },
-
-      {
-        id: 'vat',
-        title: 'VAT',
-        datum: [
-          {
-            id: 'vat_rate',
-            title: 'VAT rate',
+            id: 'libor',
+            title: 'LIBOR',
             type: PARAM_TYPE.NUMBER,
             unit: PARAM_UNIT.PERCENTAGE,
-            defaultValue: 20
+            defaultValue: 3
           },
           {
-            id: 'percentage_of_revenue_subject_to_vat',
-            title: 'Percentage of revenue subject to VAT',
+            id: 'margin',
+            title: 'Margin',
             type: PARAM_TYPE.NUMBER,
             unit: PARAM_UNIT.PERCENTAGE,
-            defaultValue: 100
+            defaultValue: 3
           },
           {
-            id: 'percentage_of_costs_and_capex_subject_to_vat',
-            title: 'Percentage of costs and capex subject to VAT',
+            id: 'interest_rate',
+            title: 'Interest Rate',
             type: PARAM_TYPE.NUMBER,
             unit: PARAM_UNIT.PERCENTAGE,
-            defaultValue: 100
-          },
-          {
-            id: 'monthly_payments_on_account',
-            title: 'Monthly payments on account',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.GBP_PRO_1000,
-            defaultValue: 35
-          }
-        ]
-      },
-      {
-        id: 'corporation_tax',
-        title: 'Corporation tax',
-        datum: [
-          {
-            id: 'small_profits_tax_rate',
-            title: 'Small profits tax rate',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.PERCENTAGE,
-            defaultValue: 19
-          },
-          {
-            id: 'main_rate_of_tax',
-            title: 'Main rate of tax',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.PERCENTAGE,
-            defaultValue: 25
-          },
-          {
-            id: 'profit_threshold_for_small_profits',
-            title: 'Profit threshold for small profits',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.GBP_PRO_1000,
-            defaultValue: 50
-          },
-          {
-            id: 'aia',
-            title: 'AIA',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.GBP_PRO_1000,
-            defaultValue: 1000
-          },
-          {
-            id: 'rate_for_capital_allowances_capital_pool',
-            title: 'Rate for capital allowances special pool',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.PERCENTAGE,
-            defaultValue: 6
-          },
-          {
-            id: 'small_pool_allowances_threshold',
-            title: 'Small pool allowance threshold',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.GBP_PRO_1000,
-            defaultValue: 1
-          }
-        ]
-      },
-      {
-        id: 'decommissioning_provision',
-        title: 'Decommissioning provision',
-        datum: [
-          {
-            id: 'decommissioning_total_cost',
-            title: 'Decommissioning total cost',
-            type: PARAM_TYPE.NUMBER,
-            unit: PARAM_UNIT.GBP_PRO_1000,
-            defaultValue: 150
-          }
-        ]
-      },
-      {
-        id: 'inflation_rate_data',
-        title: 'Inflation rate data',
-        datum: [
-          {
-            id: 'inflation_start_year',
-            title: 'Inflation start year',
-            type: PARAM_TYPE.NUMBER,
-            defaultValue: 2021
-          },
-          {
-            id: 'inflation_index_table',
-            title: 'Inflation index table',
-            type: PARAM_TYPE.TABLE,
-            stickyCols: {
-              type: 'function',
-              params: ['cyclesPerDay'],
-              fn: () =>
-                CHOICE_DATA[PARAM_TYPE.CHOICE.INFLATION].map((c) => c?.label)
-            },
-            stickyRows: {
-              type: 'function',
-              params: [],
-              fn: () => {
-                const result = [];
-                result.push('');
-                for (let i = 0; i < 50; i++) {
-                  result.push([INFLATION_START_YEAR + i]);
-                }
-                return result;
-              }
+            maxValue: 100,
+            minValue: 0,
+            renderValue: {
+              params: {
+                global: [],
+                local: ['libor', 'margin']
+              },
+              fn: ({ libor, margin }: { libor: number; margin: number }) =>
+                libor * 1 + margin * 1
             }
+          },
+          {
+            id: 'target_dscr',
+            title: 'Target DSCR for Debt Sculpting',
+            type: PARAM_TYPE.NUMBER,
+            unit: PARAM_UNIT.X,
+            defaultValue: 1.5,
+            minValue: 0.5,
+            maxValue: 3
           }
         ]
+      },
+      {
+        id: 'fees',
+        title: 'Fees',
+        type: PARAM_TYPE.GROUP,
+        children: [
+          {
+            id: 'arrangement_fees',
+            title: 'Arrangement Fees',
+            type: PARAM_TYPE.NUMBER,
+            unit: PARAM_UNIT.PERCENTAGE,
+            defaultValue: 0.3
+          },
+          {
+            id: 'commitment_fees',
+            title: 'Commitment Fees',
+            type: PARAM_TYPE.NUMBER,
+            unit: PARAM_UNIT.PERCENTAGE,
+            defaultValue: 0.3
+          }
+        ]
+      },
+      {
+        id: 'debt_service_period_to_be_considered_for_dsra_balance',
+        title: 'Debt Service Period to be Considered for DSRA Balance',
+        type: PARAM_TYPE.INTEGER,
+        unit: PARAM_UNIT.YEARS,
+        defaultValue: 1,
+        minValue: 1,
+        maxValue: 3
       }
-    ]
+    ],
+    children: []
   },
   {
-    // {
-    //   id: 'basic_project_inputs',
-    //   title: 'Basic Project Inputs',
-    //   datum: [
-    //     {
-    //       title: 'Technology',
-    //       type: PARAM_TYPE.CHOICE.TECH,
-    //       defaultValue: CHOICE_DATA[PARAM_TYPE.CHOICE.TECH][0].id
-    //     },
-    id: 'valuation_inputs',
-    title: 'Valuation inputs',
+    id: 'other_assumptions',
+    title: 'Other Assumptions',
     datum: [
       {
-        id: 'valuation_date',
-        title: 'Valuation date',
-        type: PARAM_TYPE.DATE
+        id: 'working_capital_days',
+        title: 'Working Capital Days',
+        type: PARAM_TYPE.GROUP,
+        children: [
+          {
+            id: 'receivable_days',
+            title: 'Receivable Days',
+            type: PARAM_TYPE.INTEGER,
+            unit: PARAM_UNIT.DAYS,
+            defaultValue: 60,
+            minValue: 0,
+            maxValue: 120
+          },
+          {
+            id: 'payable_days',
+            title: 'Payable Days',
+            type: PARAM_TYPE.INTEGER,
+            unit: PARAM_UNIT.DAYS,
+            defaultValue: 60,
+            minValue: 0,
+            maxValue: 120
+          }
+        ]
       },
       {
-        id: 'cost_of_equity',
-        title: 'Cost of equity',
-        type: PARAM_TYPE.NUMBER,
-        unit: PARAM_UNIT.PERCENTAGE,
-        defaultValue: 10
+        id: 'income_tax',
+        title: 'Income Tax',
+        type: PARAM_TYPE.GROUP,
+        children: [
+          {
+            id: 'income_tax_rate',
+            title: 'Income Tax Rate',
+            type: PARAM_TYPE.NUMBER,
+            unit: PARAM_UNIT.PERCENTAGE,
+            defaultValue: 20,
+            minValue: 5,
+            maxValue: 50
+          },
+          {
+            id: 'tax_holiday_period',
+            title: 'Tax Holiday Period',
+            type: PARAM_TYPE.INTEGER,
+            unit: PARAM_UNIT.YEARS,
+            defaultValue: 2,
+            minValue: 0,
+            maxValue: 5
+          }
+        ]
+      },
+      {
+        id: 'vat_assumptions',
+        title: 'Vat Assumptions',
+        type: PARAM_TYPE.GROUP,
+        children: [
+          {
+            id: 'vat_on_revenue',
+            title: 'VAT on Revenue',
+            type: PARAM_TYPE.NUMBER,
+            unit: PARAM_UNIT.PERCENTAGE,
+            defaultValue: 15,
+            minValue: 5,
+            maxValue: 50
+          },
+          {
+            id: 'vat_on_cost',
+            title: 'VAT on Cost',
+            type: PARAM_TYPE.NUMBER,
+            unit: PARAM_UNIT.PERCENTAGE,
+            defaultValue: 15,
+            minValue: 5,
+            maxValue: 50
+          },
+          {
+            id: 'vat_on_construction_cost',
+            title: 'VAT on Construction Cost',
+            type: PARAM_TYPE.NUMBER,
+            unit: PARAM_UNIT.PERCENTAGE,
+            defaultValue: 15,
+            minValue: 5,
+            maxValue: 50
+          }
+        ]
+      },
+      {
+        id: 'percentage_of_cost_applicable_for_vat',
+        title: 'Percentage of Cost Applicable for VAT',
+        type: PARAM_TYPE.GROUP,
+        children: [
+          {
+            id: 'development_and_project_management',
+            title: 'Development and Project Management',
+            type: PARAM_TYPE.NUMBER,
+            unit: PARAM_UNIT.PERCENTAGE,
+            defaultValue: 100
+          },
+          {
+            id: 'turbine_cost',
+            title: 'Turbine Cost',
+            type: PARAM_TYPE.NUMBER,
+            unit: PARAM_UNIT.PERCENTAGE,
+            defaultValue: 100
+          },
+          {
+            id: 'civil_work',
+            title: 'Civil Work',
+            type: PARAM_TYPE.NUMBER,
+            unit: PARAM_UNIT.PERCENTAGE,
+            defaultValue: 100
+          },
+          {
+            id: 'logistics_and_others',
+            title: 'Logistics and Others',
+            type: PARAM_TYPE.NUMBER,
+            unit: PARAM_UNIT.PERCENTAGE,
+            defaultValue: 100
+          },
+          {
+            id: 'developer_fee',
+            title: 'Developer Fee',
+            type: PARAM_TYPE.NUMBER,
+            unit: PARAM_UNIT.PERCENTAGE,
+            defaultValue: 100
+          }
+        ]
+      },
+      {
+        id: 'vat_settlement_period',
+        title: 'VAT Settlement Period',
+        type: PARAM_TYPE.INTEGER,
+        unit: PARAM_UNIT.DAYS,
+        defaultValue: 60,
+        minValue: 30,
+        maxValue: 180
+      },
+      {
+        id: 'cost_of_funds',
+        title: 'Cost of Funds',
+        type: PARAM_TYPE.GROUP,
+        children: [
+          {
+            id: 'cost_of_equity',
+            title: 'Cost of Equity',
+            type: PARAM_TYPE.NUMBER,
+            unit: PARAM_UNIT.PERCENTAGE,
+            defaultValue: 6.7632,
+            minValue: 3,
+            maxValue: 20
+          }
+        ]
       }
-      // {
-      //   id: 'discount_rate_pre_tax_and_unlevered',
-      //   title: 'Discount rate pre-tax and unlevered',
-      //   type: PARAM_TYPE.NUMBER,
-      //   unit: PARAM_UNIT.PERCENTAGE,
-      //   defaultValue: 10
-      // },
-      // {
-      //   id: 'discount_rate_post_tax_and_unlevered',
-      //   title: 'Discount rate post-tax and unlevered',
-      //   type: PARAM_TYPE.NUMBER,
-      //   unit: PARAM_UNIT.PERCENTAGE,
-      //   defaultValue: 7.5
-      // },
-      // {
-      //   id: 'discount_rate_post_tax_and_levered',
-      //   title: 'Discount rate post-tax and levered',
-      //   type: PARAM_TYPE.NUMBER,
-      //   unit: PARAM_UNIT.PERCENTAGE,
-      //   defaultValue: 10
-      // }
     ],
     children: []
   }
+  // {
+  //   id: 'administrative_costs',
+  //   title: 'Administrative costs',
+  //   datum: [
+  //     // {
+  //     //   id: 'opex_sensitivity',
+  //     //   title: 'Opex sensitivity',
+  //     //   type: PARAM_TYPE.SWITCH.ONOFF
+  //     // },
+  //     // {
+  //     //   id: 'opex_sensitivity_magnitude',
+  //     //   title: 'Opex sensitivity magnitude',
+  //     //   type: PARAM_TYPE.NUMBER,
+  //     //   unit: PARAM_UNIT.PERCENTAGE,
+  //     //   isShow: {
+  //     //     params: {
+  //     //       global: [],
+  //     //       local: ['opex_sensitivity']
+  //     //     },
+  //     //     fn: ({ opex_sensitivity }: { opex_sensitivity: number }) =>
+  //     //       opex_sensitivity == SWITCH_DATA[PARAM_TYPE.SWITCH.ONOFF].ON?.id
+  //     //   }
+  //     // }
+  //   ],
+  //   children: [
+  //     {
+  //       id: 'land_rent',
+  //       title: 'Land rent',
+  //       datum: [
+  //         {
+  //           id: 'land_rent_switch',
+  //           title: 'Land rent switch',
+  //           type: PARAM_TYPE.SWITCH.ONOFF
+  //         },
+  //         {
+  //           id: 'land_rent_sensitivity',
+  //           title: 'Land rent sensitivity',
+  //           type: PARAM_TYPE.SWITCH.ONOFF,
+  //           isShow: {
+  //             params: {
+  //               global: [],
+  //               local: ['land_rent_switch']
+  //             },
+  //             fn: ({ land_rent_switch }: { land_rent_switch: number }) =>
+  //               land_rent_switch == SWITCH_DATA[PARAM_TYPE.SWITCH.ONOFF].ON?.id
+  //           }
+  //         },
+  //         {
+  //           id: 'land_rent_sensitivity_magnitude',
+  //           title: 'Land rent sensitivity_magnitude',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.PERCENTAGE,
+  //           isShow: {
+  //             params: {
+  //               global: [],
+  //               local: ['land_rent_sensitivity', 'land_rent_switch']
+  //             },
+  //             fn: ({
+  //               land_rent_sensitivity,
+  //               land_rent_switch
+  //             }: {
+  //               land_rent_sensitivity: number;
+  //               land_rent_switch: number;
+  //             }) =>
+  //               land_rent_sensitivity * land_rent_switch ==
+  //               SWITCH_DATA[PARAM_TYPE.SWITCH.ONOFF].ON?.id
+  //           }
+  //         },
+  //         {
+  //           id: 'land_rent_inflation_profile',
+  //           title: 'Land rent inflation profile',
+  //           type: PARAM_TYPE.CHOICE.INFLATION,
+  //           isShow: {
+  //             params: {
+  //               global: [],
+  //               local: ['land_rent_switch']
+  //             },
+  //             fn: ({ land_rent_switch }: { land_rent_switch: number }) =>
+  //               land_rent_switch == SWITCH_DATA[PARAM_TYPE.SWITCH.ONOFF].ON?.id
+  //           }
+  //         },
+  //         {
+  //           id: 'land_rent_inflation_base_year',
+  //           title: 'Land rent inflation base year',
+  //           type: PARAM_TYPE.INTEGER,
+  //           unit: PARAM_UNIT.YEAR,
+  //           minValue: INFLATION_START_YEAR,
+  //           maxValue: INFLATION_START_YEAR + 50,
+
+  //           isShow: {
+  //             params: {
+  //               global: [],
+  //               local: ['land_rent_switch']
+  //             },
+  //             fn: ({ land_rent_switch }: { land_rent_switch: number }) =>
+  //               land_rent_switch == SWITCH_DATA[PARAM_TYPE.SWITCH.ONOFF].ON?.id
+  //           }
+  //         },
+  //         {
+  //           id: 'land_rent_provision_months',
+  //           title: 'Land rent provision months',
+  //           type: PARAM_TYPE.INTEGER,
+  //           unit: PARAM_UNIT.MONTHS,
+  //           minValue: 0,
+  //           isShow: {
+  //             params: {
+  //               global: [],
+  //               local: ['land_rent_switch']
+  //             },
+  //             fn: ({ land_rent_switch }: { land_rent_switch: number }) =>
+  //               land_rent_switch == SWITCH_DATA[PARAM_TYPE.SWITCH.ONOFF].ON?.id
+  //           }
+  //         }
+  //       ],
+  //       children: [
+  //         {
+  //           id: 'annual_land_rent',
+  //           title: 'Annual land rent',
+  //           datum: [
+  //             {
+  //               id: 'annual_land_rent_per_acre_charge',
+  //               title: 'Annual land rent per acre charge',
+  //               type: PARAM_TYPE.NUMBER,
+  //               unit: PARAM_UNIT.GBP
+  //             },
+  //             {
+  //               id: 'portion_payable_during_construction',
+  //               title: 'Portion payable during construction',
+  //               type: PARAM_TYPE.NUMBER,
+  //               unit: PARAM_UNIT.PERCENTAGE,
+  //               defaultValue: 50
+  //             },
+  //             {
+  //               id: 'portion_payable_during_operations',
+  //               title: 'Portion payable during operations',
+  //               type: PARAM_TYPE.NUMBER,
+  //               unit: PARAM_UNIT.PERCENTAGE,
+  //               defaultValue: 100
+  //             },
+  //             {
+  //               id: 'portion_payable_during_decommissioning',
+  //               title: 'Portion payable during decommissioning',
+  //               type: PARAM_TYPE.NUMBER,
+  //               unit: PARAM_UNIT.PERCENTAGE,
+  //               defaultValue: 50
+  //             }
+  //           ]
+  //         },
+  //         {
+  //           id: 'bespoke_cases_capacity_charge',
+  //           title: 'Bespoke cases - capacity charge',
+  //           datum: [
+  //             {
+  //               id: 'annual_land_rent_per_mw_charge',
+  //               title: 'Annual land rent per MW charge',
+  //               type: PARAM_TYPE.NUMBER,
+  //               unit: PARAM_UNIT.GBP_PRO_1000_PER_MW
+  //             },
+  //             {
+  //               id: 'portion_payable_during_construction',
+  //               title: 'Portion payable during construction',
+  //               type: PARAM_TYPE.NUMBER,
+  //               unit: PARAM_UNIT.PERCENTAGE
+  //             },
+  //             {
+  //               id: 'portion_payable_during_operations',
+  //               title: 'Portion payable during operations',
+  //               type: PARAM_TYPE.NUMBER,
+  //               unit: PARAM_UNIT.PERCENTAGE
+  //             },
+  //             {
+  //               id: 'portion_payable_during_decommissioning',
+  //               title: 'Portion payable during decommissioning',
+  //               type: PARAM_TYPE.NUMBER,
+  //               unit: PARAM_UNIT.PERCENTAGE
+  //             }
+  //           ]
+  //         },
+  //         {
+  //           id: 'bespoke_cases_land_rent_per_acre_and_option_charge',
+  //           title: 'Bespoke cases - land rent per acre and option charge',
+  //           datum: [
+  //             {
+  //               id: 'annual_land_option_rent_per_acre_charge',
+  //               title: 'Annual land option rent per acre charge',
+  //               type: PARAM_TYPE.NUMBER,
+  //               unit: PARAM_UNIT.GBP
+  //             },
+  //             {
+  //               id: 'option_rent_start_date',
+  //               title: 'Option rent start date',
+  //               type: PARAM_TYPE.DATE
+  //             },
+  //             {
+  //               id: 'option_rent_end_date',
+  //               title: 'Option rent end date',
+  //               type: PARAM_TYPE.DATE
+  //             },
+  //             {
+  //               id: 'annual_land_post_option_rent_per_acre_charge',
+  //               title: 'Annual land post-option rent per acre charge',
+  //               type: PARAM_TYPE.NUMBER,
+  //               unit: PARAM_UNIT.GBP
+  //             },
+  //             {
+  //               id: 'post_option_rent_start_date',
+  //               title: 'Post-option rent start date',
+  //               type: PARAM_TYPE.DATE
+  //             },
+  //             {
+  //               id: 'post_option_rent_end_date',
+  //               title: 'Post-option rent end date',
+  //               type: PARAM_TYPE.DATE
+  //             }
+  //           ]
+  //         }
+  //       ]
+  //     },
+  //     {
+  //       id: 'o_and_m',
+  //       title: 'O&M',
+  //       children: [
+  //         {
+  //           id: 'fixed',
+  //           title: 'Fixed',
+  //           datum: [
+  //             {
+  //               id: 'annual_fixed_o_and_m_2',
+  //               title: 'Annual fixed O&M - 2 hour system',
+  //               type: PARAM_TYPE.NUMBER,
+  //               unit: PARAM_UNIT.GBP
+  //             },
+  //             {
+  //               id: 'annual_fixed_o_and_m_4',
+  //               title: 'Annual fixed O&M - 4 hour system',
+  //               type: PARAM_TYPE.NUMBER,
+  //               unit: PARAM_UNIT.GBP
+  //             },
+  //             {
+  //               id: 'annual_fixed_o_and_m_8',
+  //               title: 'Annual fixed O&M - 8 hour system',
+  //               type: PARAM_TYPE.NUMBER,
+  //               unit: PARAM_UNIT.GBP
+  //             },
+  //             {
+  //               id: 'inflation_profile',
+  //               title: 'Inflation profile',
+  //               type: PARAM_TYPE.CHOICE.INFLATION
+  //             },
+  //             {
+  //               id: 'inflation_base_year',
+  //               title: 'Inflation base year',
+  //               type: PARAM_TYPE.INTEGER,
+  //               unit: PARAM_UNIT.YEAR,
+  //               minValue: INFLATION_START_YEAR,
+  //               maxValue: INFLATION_START_YEAR + 50
+  //             }
+  //           ]
+  //         },
+  //         {
+  //           id: 'variable',
+  //           title: 'Variable',
+  //           datum: [
+  //             {
+  //               id: 'variable_o_and_m_2',
+  //               title: 'Variable O&M - 2 hour system',
+  //               type: PARAM_TYPE.NUMBER,
+  //               unit: PARAM_UNIT.GBP_PRO_1000_PER_MW
+  //             },
+  //             {
+  //               id: 'variable_o_and_m_4',
+  //               title: 'Variable O&M - 4 hour system',
+  //               type: PARAM_TYPE.NUMBER,
+  //               unit: PARAM_UNIT.GBP_PRO_1000_PER_MW
+  //             },
+  //             {
+  //               id: 'variable_o_and_m_8',
+  //               title: 'Variable O&M - 8 hour system',
+  //               type: PARAM_TYPE.NUMBER,
+  //               unit: PARAM_UNIT.GBP_PRO_1000_PER_MW
+  //             },
+  //             {
+  //               id: 'inflation_profile',
+  //               title: 'Inflation profile',
+  //               type: PARAM_TYPE.CHOICE.INFLATION
+  //             },
+  //             {
+  //               id: 'inflation_base_year',
+  //               title: 'Inflation base year',
+  //               type: PARAM_TYPE.INTEGER,
+  //               unit: PARAM_UNIT.YEAR,
+  //               minValue: INFLATION_START_YEAR,
+  //               maxValue: INFLATION_START_YEAR + 50
+  //             }
+  //           ]
+  //         }
+  //       ]
+  //     },
+  //     {
+  //       id: 'asset_management',
+  //       title: 'Asset management',
+  //       datum: [
+  //         {
+  //           id: 'inflation',
+  //           title: 'Inflation',
+  //           type: PARAM_TYPE.GROUP,
+  //           children: [
+  //             {
+  //               id: 'inflation_profile_1',
+  //               title: 'Inflation profile - period 1',
+  //               type: PARAM_TYPE.CHOICE.INFLATION
+  //             },
+  //             {
+  //               id: 'inflation_base_year_1',
+  //               title: 'Inflation base year - period 1',
+  //               type: PARAM_TYPE.INTEGER,
+  //               unit: PARAM_UNIT.YEAR,
+  //               defaultValue: 2024,
+  //               minValue: INFLATION_START_YEAR,
+  //               maxValue: INFLATION_START_YEAR + 50
+  //             },
+  //             {
+  //               id: 'inflation_profile_2',
+  //               title: 'Inflation profile - period 2',
+  //               type: PARAM_TYPE.CHOICE.INFLATION
+  //             },
+  //             {
+  //               id: 'inflation_base_year_2',
+  //               title: 'Inflation base year - period 2',
+  //               type: PARAM_TYPE.INTEGER,
+  //               unit: PARAM_UNIT.YEAR,
+  //               minValue: INFLATION_START_YEAR,
+  //               maxValue: INFLATION_START_YEAR + 50
+  //             }
+  //           ]
+  //         },
+  //         {
+  //           id: 'duration',
+  //           title: 'Duration',
+  //           type: PARAM_TYPE.GROUP,
+  //           children: [
+  //             {
+  //               id: 'start_date_period_1',
+  //               title: 'Start date - period 1',
+  //               type: PARAM_TYPE.DATE
+  //             },
+  //             {
+  //               id: 'end_date_period_1',
+  //               title: 'End date - period 1',
+  //               type: PARAM_TYPE.DATE
+  //             },
+  //             {
+  //               id: 'start_date_period_2',
+  //               title: 'Start date - period 2',
+  //               type: PARAM_TYPE.DATE
+  //             },
+  //             {
+  //               id: 'end_date_period_2',
+  //               title: 'End date - period 2',
+  //               type: PARAM_TYPE.DATE
+  //             }
+  //           ]
+  //         },
+  //         {
+  //           id: 'real_time_management_percentage_period_1',
+  //           title: 'Real time management - period 1',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.PERCENTAGE
+  //         },
+  //         {
+  //           id: 'maintenance_percentage_period_1',
+  //           title: 'Maintenance - period 1',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.PERCENTAGE
+  //         },
+  //         {
+  //           id: 'real_time_management_percentage_period_2',
+  //           title: 'Real time management - period 2',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.PERCENTAGE
+  //         },
+  //         {
+  //           id: 'maintenance_percentage_period_2',
+  //           title: 'Maintenance - period 2',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.PERCENTAGE
+  //         },
+  //         {
+  //           id: 'real_time_management_period_1',
+  //           title: 'Real time management - period 1',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.GBP_PRO_1000_PER_MW,
+  //           defaultValue: 1.0
+  //         },
+  //         {
+  //           id: 'maintenance_period_1',
+  //           title: 'Maintenance - period 1',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.GBP_PRO_1000_PER_MW,
+  //           defaultValue: 2.0
+  //         },
+  //         {
+  //           id: 'real_time_management_period_2',
+  //           title: 'Real time management - period 2',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.GBP_PRO_1000_PER_MW
+  //         },
+  //         {
+  //           id: 'maintenance_period_2',
+  //           title: 'Maintenance - period 2',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.GBP_PRO_1000_PER_MW
+  //         }
+  //       ]
+  //     },
+  //     {
+  //       id: 'insurance',
+  //       title: 'Insurance',
+  //       datum: [
+  //         {
+  //           id: 'inflation_profile',
+  //           title: 'Inflation profile',
+  //           type: PARAM_TYPE.CHOICE.INFLATION
+  //         },
+  //         {
+  //           id: 'inflation_base_year_operations',
+  //           title: 'Inflation base year - operations',
+  //           type: PARAM_TYPE.INTEGER,
+  //           unit: PARAM_UNIT.YEAR,
+  //           defaultValue: 2024,
+  //           minValue: INFLATION_START_YEAR,
+  //           maxValue: INFLATION_START_YEAR + 50
+  //         },
+  //         {
+  //           id: 'annual_fees_per_mw_operations',
+  //           title: 'Annual fees per MW - operations',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.GBP_PRO_1000_PER_MW
+  //         }
+  //       ]
+  //     },
+  //     {
+  //       id: 'community_benefit',
+  //       title: 'Community benefit',
+  //       datum: [
+  //         {
+  //           id: 'inflation_profile',
+  //           title: 'Inflation profile',
+  //           type: PARAM_TYPE.CHOICE.INFLATION
+  //         },
+  //         {
+  //           id: 'inflation_base_year',
+  //           title: 'Inflation base year',
+  //           type: PARAM_TYPE.INTEGER,
+  //           unit: PARAM_UNIT.YEAR,
+  //           defaultValue: 2024,
+  //           minValue: INFLATION_START_YEAR,
+  //           maxValue: INFLATION_START_YEAR + 50
+  //         },
+  //         {
+  //           id: 'annual_fixed_fund_to_community_benefit',
+  //           title: 'Annual fixed fund to community benefit',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.GBP_PRO_1000,
+  //           defaultValue: 1000
+  //         },
+  //         {
+  //           id: 'annual_mwh_to_community_benefit',
+  //           title: 'Annual MWh to community benefit',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.MWH,
+  //           defaultValue: 0
+  //         }
+  //       ]
+  //     },
+  //     {
+  //       id: 'water_rates',
+  //       title: 'Water rates',
+  //       datum: [
+  //         {
+  //           id: 'inflation_profile',
+  //           title: 'Inflation profile',
+  //           type: PARAM_TYPE.CHOICE.INFLATION
+  //         },
+  //         {
+  //           id: 'inflation_base_year',
+  //           title: 'Inflation base year',
+  //           type: PARAM_TYPE.INTEGER,
+  //           unit: PARAM_UNIT.YEAR,
+  //           minValue: INFLATION_START_YEAR,
+  //           maxValue: INFLATION_START_YEAR + 50
+  //         },
+  //         {
+  //           id: 'annual_fees_per_mw',
+  //           title: 'Annual fees per MW',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.GBP_PRO_1000_PER_MW
+  //         }
+  //       ]
+  //     },
+  //     {
+  //       id: 'business_rates',
+  //       title: 'Business rates',
+  //       datum: [
+  //         {
+  //           id: 'inflation_profile',
+  //           title: 'Inflation profile',
+  //           type: PARAM_TYPE.CHOICE.INFLATION
+  //         },
+  //         {
+  //           id: 'inflation_base_year',
+  //           title: 'Inflation base year',
+  //           type: PARAM_TYPE.INTEGER,
+  //           unit: PARAM_UNIT.YEAR,
+  //           minValue: INFLATION_START_YEAR,
+  //           maxValue: INFLATION_START_YEAR + 50
+  //         },
+  //         {
+  //           id: 'annual_fees_per_mw',
+  //           title: 'Annual fees per MW',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.GBP_PRO_1000_PER_MW
+  //         }
+  //       ]
+  //     },
+  //     {
+  //       id: 'extended_warranty',
+  //       title: 'Extended warranty',
+  //       datum: [
+  //         {
+  //           id: 'extended_warranty_switch',
+  //           title: 'Extended warranty switch',
+  //           type: PARAM_TYPE.SWITCH.ONOFF
+  //         },
+  //         {
+  //           id: 'inflation_profile',
+  //           title: 'Inflation profile',
+  //           type: PARAM_TYPE.CHOICE.INFLATION,
+  //           isShow: {
+  //             params: {
+  //               global: [],
+  //               local: ['extended_warranty_switch']
+  //             },
+  //             fn: ({
+  //               extended_warranty_switch
+  //             }: {
+  //               extended_warranty_switch: number;
+  //             }) =>
+  //               extended_warranty_switch ==
+  //               SWITCH_DATA[PARAM_TYPE.SWITCH.ONOFF].ON?.id
+  //           }
+  //         },
+  //         {
+  //           id: 'inflation_base_year',
+  //           title: 'Inflation base year',
+  //           type: PARAM_TYPE.INTEGER,
+  //           unit: PARAM_UNIT.YEAR,
+  //           minValue: INFLATION_START_YEAR,
+  //           maxValue: INFLATION_START_YEAR + 50,
+  //           isShow: {
+  //             params: {
+  //               global: [],
+  //               local: ['extended_warranty_switch']
+  //             },
+  //             fn: ({
+  //               extended_warranty_switch
+  //             }: {
+  //               extended_warranty_switch: number;
+  //             }) =>
+  //               extended_warranty_switch ==
+  //               SWITCH_DATA[PARAM_TYPE.SWITCH.ONOFF].ON?.id
+  //           }
+  //         },
+  //         {
+  //           id: 'length_of_warranty',
+  //           title: 'Length of warranty',
+  //           type: PARAM_TYPE.INTEGER,
+  //           unit: PARAM_UNIT.YEARS,
+  //           minValue: 1,
+  //           isShow: {
+  //             params: {
+  //               global: [],
+  //               local: ['extended_warranty_switch']
+  //             },
+  //             fn: ({
+  //               extended_warranty_switch
+  //             }: {
+  //               extended_warranty_switch: number;
+  //             }) =>
+  //               extended_warranty_switch ==
+  //               SWITCH_DATA[PARAM_TYPE.SWITCH.ONOFF].ON?.id
+  //           }
+  //         },
+  //         {
+  //           id: 'annual_fees_per_mw_2',
+  //           title: 'Annual fees per MW - 2 hour system',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.GBP_PRO_1000_PER_MW,
+  //           defaultValue: 4.077,
+  //           isShow: {
+  //             params: {
+  //               global: [],
+  //               local: ['extended_warranty_switch']
+  //             },
+  //             fn: ({
+  //               extended_warranty_switch
+  //             }: {
+  //               extended_warranty_switch: number;
+  //             }) =>
+  //               extended_warranty_switch ==
+  //               SWITCH_DATA[PARAM_TYPE.SWITCH.ONOFF].ON?.id
+  //           }
+  //         },
+  //         {
+  //           id: 'annual_fees_per_mw_4',
+  //           title: 'Annual fees per MW - 4 hour system',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.GBP_PRO_1000_PER_MW,
+  //           defaultValue: 8.153,
+  //           isShow: {
+  //             params: {
+  //               global: [],
+  //               local: ['extended_warranty_switch']
+  //             },
+  //             fn: ({
+  //               extended_warranty_switch
+  //             }: {
+  //               extended_warranty_switch: number;
+  //             }) =>
+  //               extended_warranty_switch ==
+  //               SWITCH_DATA[PARAM_TYPE.SWITCH.ONOFF].ON?.id
+  //           }
+  //         },
+  //         {
+  //           id: 'annual_fees_per_mw_8',
+  //           title: 'Annual fees per MW - 8 hour system',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.GBP_PRO_1000_PER_MW,
+  //           defaultValue: 16.307,
+  //           isShow: {
+  //             params: {
+  //               global: [],
+  //               local: ['extended_warranty_switch']
+  //             },
+  //             fn: ({
+  //               extended_warranty_switch
+  //             }: {
+  //               extended_warranty_switch: number;
+  //             }) =>
+  //               extended_warranty_switch ==
+  //               SWITCH_DATA[PARAM_TYPE.SWITCH.ONOFF].ON?.id
+  //           }
+  //         }
+  //       ]
+  //     },
+  //     {
+  //       id: 'site_security',
+  //       title: 'Site secuirty',
+  //       datum: [
+  //         {
+  //           id: 'inflation_profile',
+  //           title: 'Inflation profile',
+  //           type: PARAM_TYPE.CHOICE.INFLATION
+  //         },
+  //         {
+  //           id: 'inflation_base_year',
+  //           title: 'Inflation base year',
+  //           type: PARAM_TYPE.INTEGER,
+  //           unit: PARAM_UNIT.YEAR,
+  //           defaultValue: 2024,
+  //           minValue: INFLATION_START_YEAR,
+  //           maxValue: INFLATION_START_YEAR + 50
+  //         },
+  //         {
+  //           id: 'annual_fees_per_mw',
+  //           title: 'Annual fees per MW',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.GBP_PRO_1000_PER_MW,
+  //           defaultValue: 0.03
+  //         }
+  //       ]
+  //     },
+  //     {
+  //       id: 'easement_costs',
+  //       title: 'Easement costs',
+  //       datum: [
+  //         {
+  //           id: 'inflation_profile',
+  //           title: 'Inflation profile',
+  //           type: PARAM_TYPE.CHOICE.INFLATION
+  //         },
+  //         {
+  //           id: 'inflation_base_year',
+  //           title: 'Inflation base year',
+  //           type: PARAM_TYPE.INTEGER,
+  //           unit: PARAM_UNIT.YEAR,
+  //           defaultValue: 2024,
+  //           minValue: INFLATION_START_YEAR,
+  //           maxValue: INFLATION_START_YEAR + 50
+  //         },
+  //         {
+  //           id: 'annual_cost',
+  //           title: 'Annual cost',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.GBP_PRO_1000_PER_KM
+  //         },
+  //         {
+  //           id: 'cable_length',
+  //           title: 'Cable length',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.KM
+  //         }
+  //       ]
+  //     },
+  //     {
+  //       id: 'legal_costs',
+  //       title: 'Legal costs',
+  //       datum: [
+  //         {
+  //           id: 'inflation_profile',
+  //           title: 'Inflation profile',
+  //           type: PARAM_TYPE.CHOICE.INFLATION
+  //         },
+  //         {
+  //           id: 'inflation_base_year',
+  //           title: 'Inflation base year',
+  //           type: PARAM_TYPE.INTEGER,
+  //           unit: PARAM_UNIT.YEAR,
+  //           defaultValue: 2024,
+  //           minValue: INFLATION_START_YEAR,
+  //           maxValue: INFLATION_START_YEAR + 50
+  //         },
+  //         {
+  //           id: 'annual_cost',
+  //           title: 'Annual cost',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.GBP_PRO_1000,
+  //           defaultValue: 30
+  //         }
+  //       ]
+  //     },
+  //     {
+  //       id: 'other_administrative_costs',
+  //       title: 'Other administrative costs',
+  //       datum: [
+  //         {
+  //           id: 'inflation_profile',
+  //           title: 'Inflation profile',
+  //           type: PARAM_TYPE.CHOICE.INFLATION
+  //         },
+  //         {
+  //           id: 'inflation_base_year',
+  //           title: 'Inflation base year',
+  //           type: PARAM_TYPE.INTEGER,
+  //           unit: PARAM_UNIT.YEAR,
+  //           defaultValue: 2024,
+  //           minValue: INFLATION_START_YEAR,
+  //           maxValue: INFLATION_START_YEAR + 50
+  //         },
+  //         {
+  //           id: 'annual_accounting_fees_and_audit',
+  //           title: 'Annual accounting fees and audit',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.GBP_PRO_1000,
+  //           defaultValue: 7.5
+  //         },
+  //         {
+  //           id: 'annual_it',
+  //           title: 'Annual IT',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.GBP_PRO_1000,
+  //           defaultValue: 7.5
+  //         },
+  //         {
+  //           id: 'annual_other_cost',
+  //           title: 'Annual other cost',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.GBP_PRO_1000,
+  //           defaultValue: 7.5
+  //         },
+  //         {
+  //           id: 'total_costs',
+  //           title: 'Total Costs',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.GBP_PRO_1000,
+  //           renderValue: {
+  //             params: {
+  //               local: [
+  //                 'annual_accounting_fees_and_audit',
+  //                 'annual_it',
+  //                 'annual_other_cost'
+  //               ],
+  //               global: []
+  //             },
+  //             fn: ({
+  //               annual_accounting_fees_and_audit = '0',
+  //               annual_it = '0',
+  //               annual_other_cost = '0'
+  //             }: {
+  //               annual_accounting_fees_and_audit: string;
+  //               annual_it: string;
+  //               annual_other_cost: string;
+  //             }) => {
+  //               let val = parseFloat(annual_accounting_fees_and_audit) || 0;
+  //               val += parseFloat(annual_it);
+  //               val += parseFloat(annual_other_cost);
+  //               return val;
+  //             }
+  //           }
+  //         }
+  //       ]
+  //     },
+  //     {
+  //       id: 'intercompany_expense',
+  //       title: 'Intercompany expense',
+  //       datum: [
+  //         {
+  //           id: 'inflation_profile',
+  //           title: 'Inflation profile',
+  //           type: PARAM_TYPE.CHOICE.INFLATION
+  //         },
+  //         {
+  //           id: 'inflation_base_year',
+  //           title: 'Inflation base year',
+  //           type: PARAM_TYPE.INTEGER,
+  //           unit: PARAM_UNIT.YEAR,
+  //           minValue: INFLATION_START_YEAR,
+  //           maxValue: INFLATION_START_YEAR + 50
+  //         },
+  //         {
+  //           id: 'annual_cost',
+  //           title: 'Annual cost',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.GBP_PRO_1000
+  //         }
+  //       ]
+  //     }
+  //   ]
+  // },
+  // {
+  //   id: 'other_inputs',
+  //   title: 'Other inputs',
+  //   datum: [],
+  //   children: [
+  //     {
+  //       id: 'working_capital',
+  //       title: 'Working capital',
+  //       datum: [
+  //         {
+  //           id: 'debtor_days',
+  //           title: 'Debtor days',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.DAYS,
+  //           defaultValue: 90
+  //         },
+  //         {
+  //           id: 'creditor_days',
+  //           title: 'Creditor days',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.DAYS,
+  //           defaultValue: 90
+  //         }
+  //       ]
+  //     },
+  //     {
+  //       id: 'national_grid_securities',
+  //       title: 'National grid securities',
+  //       datum: [
+  //         {
+  //           id: 'security_choice',
+  //           title: 'Security choice',
+  //           type: PARAM_TYPE.CHOICE.SECURITY
+  //         },
+  //         {
+  //           id: 'attributable_security_choice',
+  //           title: 'Attributable security choice',
+  //           type: PARAM_TYPE.CHOICE.ATTRIBUTABLE_SECURITY
+  //         },
+  //         {
+  //           id: 'attributable_security_choice_data',
+  //           title: 'Attributable security choice data',
+  //           type: PARAM_TYPE.TABLE,
+  //           unit: null,
+  //           stickyCols: {
+  //             type: 'function',
+  //             params: ['securityChoice'],
+  //             fn: () =>
+  //               CHOICE_DATA[PARAM_TYPE.CHOICE.ATTRIBUTABLE_SECURITY].map(
+  //                 (c) => c?.label
+  //               )
+  //           },
+
+  //           stickyRows: {
+  //             type: 'function',
+  //             params: [],
+  //             fn: () => {
+  //               const result = [];
+  //               result.push(['']);
+  //               for (let i = 8; i > 0; i--) {
+  //                 result.push([`COD - ${i * 6}`]);
+  //               }
+  //               return result;
+  //             }
+  //           }
+  //         },
+  //         {
+  //           id: 'total_attributable_costs',
+  //           title: 'Total attributable costs',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.GBP_PRO_1000,
+  //           defaultValue: 4800
+  //         },
+  //         {
+  //           id: 'annual_wider_cancellation_costs',
+  //           title: 'Annual wider cancellation costs',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.GBP_PRO_1000,
+  //           defaultValue: 401
+  //         },
+  //         {
+  //           id: 'premium_fee',
+  //           title: 'Premium fee',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.PERCENTAGE,
+  //           defaultValue: 1.5
+  //         }
+  //       ]
+  //     },
+  //     {
+  //       id: 'financing',
+  //       title: 'Financing',
+  //       datum: [],
+  //       children: [
+  //         {
+  //           id: 'cash_requirements',
+  //           title: 'Cash requirements',
+  //           datum: [
+  //             {
+  //               id: 'minimum_cash_balance',
+  //               title: 'Minimum cash balance',
+  //               type: PARAM_TYPE.NUMBER,
+  //               unit: PARAM_UNIT.GBP_PRO_1000,
+  //               defaultValue: 10
+  //             },
+  //             {
+  //               id: 'cash_requirement_look_forward_restriction',
+  //               title: 'Cash requirement look-forward restriction',
+  //               type: PARAM_TYPE.INTEGER,
+  //               unit: PARAM_UNIT.MONTHS,
+  //               minValue: 0,
+  //               defaultValue: 12
+  //             }
+  //           ]
+  //         },
+  //         {
+  //           id: 'gearing_by_capex_type',
+  //           title: 'Gearing by capex type',
+  //           datum: [
+  //             {
+  //               id: 'bess_augmentation',
+  //               title: 'BESS augmentation',
+  //               type: PARAM_TYPE.NUMBER,
+  //               unit: PARAM_UNIT.PERCENTAGE,
+  //               defaultValue: 0
+  //             },
+  //             {
+  //               id: 'bess_replacement_1',
+  //               title: 'BESS replacement1',
+  //               type: PARAM_TYPE.NUMBER,
+  //               unit: PARAM_UNIT.PERCENTAGE,
+  //               defaultValue: 70
+  //             },
+  //             {
+  //               id: 'bess_replacement_2',
+  //               title: 'BESS replacement2',
+  //               type: PARAM_TYPE.NUMBER,
+  //               unit: PARAM_UNIT.PERCENTAGE,
+  //               defaultValue: 70
+  //             },
+  //             {
+  //               id: 'gearing_excluding_batteries',
+  //               title: 'Gearing excluding batteries',
+  //               type: PARAM_TYPE.NUMBER,
+  //               unit: PARAM_UNIT.PERCENTAGE,
+  //               defaultValue: 0
+  //             }
+  //           ]
+  //         },
+  //         {
+  //           id: 'senior_debt',
+  //           title: 'Senior debt',
+  //           datum: [
+  //             {
+  //               id: 'senior_debt_interest',
+  //               title: 'Senior debt interest',
+  //               type: PARAM_TYPE.NUMBER,
+  //               unit: PARAM_UNIT.PERCENTAGE_PA,
+  //               defaultValue: 8.25
+  //             },
+  //             {
+  //               id: 'cash_sweep_percentage_of_available_cash',
+  //               title:
+  //                 'Cash sweep % of available cash (senior debt repayment profile)',
+  //               type: PARAM_TYPE.NUMBER,
+  //               unit: PARAM_UNIT.PERCENTAGE,
+  //               defaultValue: 100
+  //             },
+  //             {
+  //               id: 'minimum_allowed_dscr_half_yearly',
+  //               title: 'Minimum allowed DSCR (half-yearly)',
+  //               type: PARAM_TYPE.NUMBER,
+  //               unit: PARAM_UNIT.PERCENTAGE,
+  //               defaultValue: 0
+  //             },
+  //             {
+  //               id: 'minimum_allowed_dscr_annual',
+  //               title: 'Minimum allowed DSCR (annual)',
+  //               type: PARAM_TYPE.NUMBER,
+  //               unit: PARAM_UNIT.PERCENTAGE,
+  //               defaultValue: 0
+  //             }
+  //           ]
+  //         },
+  //         {
+  //           id: 'equity',
+  //           title: 'Equity',
+  //           datum: [
+  //             {
+  //               id: 'equity_split_to_sharholder_loan',
+  //               title: 'Equity split to shareholder loan',
+  //               type: PARAM_TYPE.NUMBER,
+  //               unit: PARAM_UNIT.PERCENTAGE,
+  //               defaultValue: 100
+  //             },
+  //             {
+  //               id: 'equity_split_to_share_capital',
+  //               title: 'Equity split to share capital',
+  //               type: PARAM_TYPE.NUMBER,
+  //               unit: PARAM_UNIT.PERCENTAGE,
+  //               renderValue: {
+  //                 params: {
+  //                   global: [],
+  //                   local: ['equity_split_to_sharholder_loan']
+  //                 },
+  //                 fn: ({
+  //                   equity_split_to_sharholder_loan
+  //                 }: {
+  //                   equity_split_to_sharholder_loan: number;
+  //                 }) => 100 - equity_split_to_sharholder_loan
+  //               }
+  //             },
+  //             {
+  //               id: 'shareholder_loan_interest',
+  //               title: 'Shareholder loan interest',
+  //               type: PARAM_TYPE.NUMBER,
+  //               unit: PARAM_UNIT.PERCENTAGE_PA,
+  //               defaultValue: 8
+  //             },
+  //             {
+  //               id: 'shareholder_loan_cash_sweep_percentage_of_available_cash',
+  //               title: 'Shareholder loan cash sweep % of available cash',
+  //               type: PARAM_TYPE.NUMBER,
+  //               unit: PARAM_UNIT.PERCENTAGE,
+  //               defaultValue: 100
+  //             },
+  //             {
+  //               id: 'share_capital_cash_sweep_percentage_of_available_cash',
+  //               title: 'Share capital cash sweep % of available cash',
+  //               type: PARAM_TYPE.NUMBER,
+  //               unit: PARAM_UNIT.PERCENTAGE
+  //             },
+  //             {
+  //               id: 'dividends_cash_sweep_percentage_of_available_cash',
+  //               title: 'Dividends cash sweep % of available cash',
+  //               type: PARAM_TYPE.NUMBER,
+  //               unit: PARAM_UNIT.PERCENTAGE,
+  //               defaultValue: 0
+  //             }
+  //           ]
+  //         }
+  //       ]
+  //     },
+
+  //     {
+  //       id: 'vat',
+  //       title: 'VAT',
+  //       datum: [
+  //         {
+  //           id: 'vat_rate',
+  //           title: 'VAT rate',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.PERCENTAGE,
+  //           defaultValue: 20
+  //         },
+  //         {
+  //           id: 'percentage_of_revenue_subject_to_vat',
+  //           title: 'Percentage of revenue subject to VAT',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.PERCENTAGE,
+  //           defaultValue: 100
+  //         },
+  //         {
+  //           id: 'percentage_of_costs_and_capex_subject_to_vat',
+  //           title: 'Percentage of costs and capex subject to VAT',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.PERCENTAGE,
+  //           defaultValue: 100
+  //         },
+  //         {
+  //           id: 'monthly_payments_on_account',
+  //           title: 'Monthly payments on account',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.GBP_PRO_1000,
+  //           defaultValue: 35
+  //         }
+  //       ]
+  //     },
+  //     {
+  //       id: 'corporation_tax',
+  //       title: 'Corporation tax',
+  //       datum: [
+  //         {
+  //           id: 'small_profits_tax_rate',
+  //           title: 'Small profits tax rate',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.PERCENTAGE,
+  //           defaultValue: 19
+  //         },
+  //         {
+  //           id: 'main_rate_of_tax',
+  //           title: 'Main rate of tax',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.PERCENTAGE,
+  //           defaultValue: 25
+  //         },
+  //         {
+  //           id: 'profit_threshold_for_small_profits',
+  //           title: 'Profit threshold for small profits',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.GBP_PRO_1000,
+  //           defaultValue: 50
+  //         },
+  //         {
+  //           id: 'aia',
+  //           title: 'AIA',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.GBP_PRO_1000,
+  //           defaultValue: 1000
+  //         },
+  //         {
+  //           id: 'rate_for_capital_allowances_capital_pool',
+  //           title: 'Rate for capital allowances special pool',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.PERCENTAGE,
+  //           defaultValue: 6
+  //         },
+  //         {
+  //           id: 'small_pool_allowances_threshold',
+  //           title: 'Small pool allowance threshold',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.GBP_PRO_1000,
+  //           defaultValue: 1
+  //         }
+  //       ]
+  //     },
+  //     {
+  //       id: 'decommissioning_provision',
+  //       title: 'Decommissioning provision',
+  //       datum: [
+  //         {
+  //           id: 'decommissioning_total_cost',
+  //           title: 'Decommissioning total cost',
+  //           type: PARAM_TYPE.NUMBER,
+  //           unit: PARAM_UNIT.GBP_PRO_1000,
+  //           defaultValue: 150
+  //         }
+  //       ]
+  //     },
+  //     {
+  //       id: 'inflation_rate_data',
+  //       title: 'Inflation rate data',
+  //       datum: [
+  //         {
+  //           id: 'inflation_start_year',
+  //           title: 'Inflation start year',
+  //           type: PARAM_TYPE.NUMBER,
+  //           defaultValue: 2021
+  //         },
+  //         {
+  //           id: 'inflation_index_table',
+  //           title: 'Inflation index table',
+  //           type: PARAM_TYPE.TABLE,
+  //           stickyCols: {
+  //             type: 'function',
+  //             params: ['cyclesPerDay'],
+  //             fn: () =>
+  //               CHOICE_DATA[PARAM_TYPE.CHOICE.INFLATION].map((c) => c?.label)
+  //           },
+  //           stickyRows: {
+  //             type: 'function',
+  //             params: [],
+  //             fn: () => {
+  //               const result = [];
+  //               result.push('');
+  //               for (let i = 0; i < 50; i++) {
+  //                 result.push([INFLATION_START_YEAR + i]);
+  //               }
+  //               return result;
+  //             }
+  //           }
+  //         }
+  //       ]
+  //     }
+  //   ]
+  // },
+  // {
+  //   // {
+  //   //   id: 'basic_project_inputs',
+  //   //   title: 'Basic Project Inputs',
+  //   //   datum: [
+  //   //     {
+  //   //       title: 'Technology',
+  //   //       type: PARAM_TYPE.CHOICE.TECH,
+  //   //       defaultValue: CHOICE_DATA[PARAM_TYPE.CHOICE.TECH][0].id
+  //   //     },
+  //   id: 'valuation_inputs',
+  //   title: 'Valuation inputs',
+  //   datum: [
+  //     {
+  //       id: 'valuation_date',
+  //       title: 'Valuation date',
+  //       type: PARAM_TYPE.DATE
+  //     },
+  //     {
+  //       id: 'cost_of_equity',
+  //       title: 'Cost of equity',
+  //       type: PARAM_TYPE.NUMBER,
+  //       unit: PARAM_UNIT.PERCENTAGE,
+  //       defaultValue: 10
+  //     }
+  //     // {
+  //     //   id: 'discount_rate_pre_tax_and_unlevered',
+  //     //   title: 'Discount rate pre-tax and unlevered',
+  //     //   type: PARAM_TYPE.NUMBER,
+  //     //   unit: PARAM_UNIT.PERCENTAGE,
+  //     //   defaultValue: 10
+  //     // },
+  //     // {
+  //     //   id: 'discount_rate_post_tax_and_unlevered',
+  //     //   title: 'Discount rate post-tax and unlevered',
+  //     //   type: PARAM_TYPE.NUMBER,
+  //     //   unit: PARAM_UNIT.PERCENTAGE,
+  //     //   defaultValue: 7.5
+  //     // },
+  //     // {
+  //     //   id: 'discount_rate_post_tax_and_levered',
+  //     //   title: 'Discount rate post-tax and levered',
+  //     //   type: PARAM_TYPE.NUMBER,
+  //     //   unit: PARAM_UNIT.PERCENTAGE,
+  //     //   defaultValue: 10
+  //     // }
+  //   ],
+  //   children: []
+  // }
 ];

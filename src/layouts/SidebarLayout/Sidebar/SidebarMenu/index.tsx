@@ -1,46 +1,17 @@
 import { useContext, useMemo } from 'react';
-
 import {
-  ListSubheader,
   alpha,
   Box,
   List,
   styled,
-  Button,
-  ListItem
 } from '@mui/material';
-import { NavLink as RouterLink } from 'react-router-dom';
 import GridViewIcon from '@mui/icons-material/GridView';
 import SettingsSuggestIcon from '@mui/icons-material/SettingsSuggest';
-import DesignServicesTwoToneIcon from '@mui/icons-material/DesignServicesTwoTone';
-import BrightnessLowTwoToneIcon from '@mui/icons-material/BrightnessLowTwoTone';
-import MmsTwoToneIcon from '@mui/icons-material/MmsTwoTone';
-import TableChartTwoToneIcon from '@mui/icons-material/TableChartTwoTone';
-import AccountCircleTwoToneIcon from '@mui/icons-material/AccountCircleTwoTone';
-import BallotTwoToneIcon from '@mui/icons-material/BallotTwoTone';
-import BeachAccessTwoToneIcon from '@mui/icons-material/BeachAccessTwoTone';
-import EmojiEventsTwoToneIcon from '@mui/icons-material/EmojiEventsTwoTone';
-import FilterVintageTwoToneIcon from '@mui/icons-material/FilterVintageTwoTone';
-import HowToVoteTwoToneIcon from '@mui/icons-material/HowToVoteTwoTone';
-import LocalPharmacyTwoToneIcon from '@mui/icons-material/LocalPharmacyTwoTone';
-import RedeemTwoToneIcon from '@mui/icons-material/RedeemTwoTone';
-import SettingsTwoToneIcon from '@mui/icons-material/SettingsTwoTone';
-import TrafficTwoToneIcon from '@mui/icons-material/TrafficTwoTone';
-import CheckBoxTwoToneIcon from '@mui/icons-material/CheckBoxTwoTone';
-import ChromeReaderModeTwoToneIcon from '@mui/icons-material/ChromeReaderModeTwoTone';
-import WorkspacePremiumTwoToneIcon from '@mui/icons-material/WorkspacePremiumTwoTone';
-import CameraFrontTwoToneIcon from '@mui/icons-material/CameraFrontTwoTone';
-import DisplaySettingsTwoToneIcon from '@mui/icons-material/DisplaySettingsTwoTone';
 import { SidebarContext } from '../../../../contexts/SidebarContext';
 import CollapsableList from './CollapsableList';
-import ManageHistoryIcon from '@mui/icons-material/ManageHistory';
-import EngineeringIcon from '@mui/icons-material/Engineering';
-import SettingsBackupRestoreIcon from '@mui/icons-material/SettingsBackupRestore';
 import { INPUT_PARAMS } from '../../../../utils/constant';
-import { useSelector } from 'react-redux';
 import { useAppSelector } from '../../../../store/hooks';
 import { selectParam } from '../../../../store/slices/parameterSlice';
-import { CurrencyBitcoinSharp } from '@mui/icons-material';
 const MenuWrapper = styled(Box)(
   ({ theme }) => `
   .MuiList-root {
@@ -216,59 +187,15 @@ function SidebarMenu() {
         icon: <SettingsSuggestIcon />,
         children: [
           {
-            to: 'battery',
-            title: 'Battery',
-            icon: <SettingsSuggestIcon />,
-            children: [
-              {
-                to: 'average_battery_cycles',
-                title: 'Avg battery cycles',
-                icon: <GridViewIcon />
-              },
-              {
-                to: 'electricity_sold',
-                title: 'Electricity sold',
-                icon: <GridViewIcon />
-              }
-            ]
+            to: 'revenue',
+            title: 'Revenue',
+            icon: <GridViewIcon />
           },
           {
-            to: 'cashflow',
-            title: 'Cashflow',
-            icon: <SettingsSuggestIcon />
+            to: 'cost',
+            title: 'Cost',
+            icon: <GridViewIcon />
           },
-          {
-            to: 'profit_loss',
-            title: 'Profit & Loss',
-            icon: <SettingsSuggestIcon />,
-            children: [
-              {
-                to: 'revenue',
-                title: 'Revenue',
-                icon: <GridViewIcon />
-              },
-              {
-                to: 'cost_of_sales',
-                title: 'Cost of Sales',
-                icon: <GridViewIcon />
-              },
-              {
-                to: 'admin_costs',
-                title: 'Admin costs',
-                icon: <GridViewIcon />
-              },
-              {
-                to: 'profit_across_time',
-                title: 'Profit across time',
-                icon: <GridViewIcon />
-              }
-            ]
-          },
-          {
-            to: 'balance_sheet',
-            title: 'Balance sheet',
-            icon: <SettingsSuggestIcon />
-          }
         ]
       },
       {
@@ -277,13 +204,18 @@ function SidebarMenu() {
         icon: <SettingsSuggestIcon />,
         children: [
           {
-            to: 'cashflow',
-            title: 'CashFlow',
+            to: 'cash_waterfall',
+            title: 'Cash Waterfall',
             icon: <GridViewIcon />
           },
           {
-            to: 'profit_loss',
-            title: 'Profit & Loss',
+            to: 'cashflow',
+            title: 'Cashflow',
+            icon: <GridViewIcon />
+          },
+          {
+            to: 'profit_loss_account',
+            title: 'Profit & Loss Account',
             icon: <GridViewIcon />
           },
           {
@@ -293,11 +225,11 @@ function SidebarMenu() {
           }
         ]
       },
-      {
-        to: "valuation",
-        title: "Project valuation",
-        icon: <GridViewIcon />,
-      }
+      // {
+      //   to: 'valuation',
+      //   title: 'Project valuation',
+      //   icon: <GridViewIcon />
+      // }
     ];
   }, [INPUT_PARAMS, currentParameterId]);
 

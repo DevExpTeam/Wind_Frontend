@@ -14,6 +14,7 @@ import {
   paramInfoGetAsync,
   selectParam
 } from '../../store/slices/parameterSlice';
+import useParameter from '../../utils/usePrameter';
 
 const openedMixin = (theme: Theme): CSSObject => ({
   width: theme.sidebar.width,
@@ -101,6 +102,7 @@ export default function SidebarLayout() {
   const [open, setOpen] = React.useState(false);
   const dispatch = useAppDispatch();
   const { currentParameterId } = useAppSelector(selectParam);
+  useParameter();
 
   const { sidebarToggle, toggleSidebar } = React.useContext(SidebarContext);
 

@@ -13,12 +13,16 @@ interface CardItemProps {
   item: any;
   value: Record<string, any>;
   disabled?: boolean;
+  isGroup?: boolean,
+  groupID?: string,
   onChange: (name: string, value: any) => void;
 }
 const CardItem: FC<CardItemProps> = ({
   item,
   value,
   disabled = false,
+  isGroup = false,
+  groupID,
   onChange
 }) => {
   const type = useMemo(() => {
@@ -26,10 +30,9 @@ const CardItem: FC<CardItemProps> = ({
   }, [item]);
 
   useEffect(() => {
-    // if (typeof value !== 'object' || !Object.keys(value).includes(item?.id)) {
-    //   console.log('change item', value, item);
-    //   // onChange(item.id, item.defaultValue);
-    // }
+    if (typeof value !== 'object' || !Object.keys(value).includes(item?.id)) {
+      // onChange(item.id, item.defaultValue);
+    }
   }, [value, item]);
 
   const customValue = useMemo(() => {
@@ -58,7 +61,7 @@ const CardItem: FC<CardItemProps> = ({
             ) : type.startsWith('choice') ? (
               <ChoiceComponent
                 type={type}
-                value={customValue || item?.defaultValue}
+                value={customValue}
                 onChange={(v: any) => {
                   onChange(item.id || item.title, v);
                 }}
@@ -66,7 +69,7 @@ const CardItem: FC<CardItemProps> = ({
             ) : type.startsWith('switch') ? (
               <SwitchComponent
                 type={type}
-                value={customValue || item?.defaultValue}
+                value={customValue}
                 onChange={(v: any) => {
                   onChange(item.id || item.title, v);
                 }}
@@ -81,7 +84,7 @@ const CardItem: FC<CardItemProps> = ({
                   </InputAdornment>
                 }
                 defaultValue={item?.defaultValue}
-                value={customValue || item?.defaultValue}
+                value={customValue}
                 disabled={disabled}
                 onChange={(v: any) => {
                   let min = null,
@@ -94,7 +97,7 @@ const CardItem: FC<CardItemProps> = ({
                   let value = v.target.value.replace(/[^0-9.]/, '');
                   if (max && max < value) value = max;
                   if (min && min > value) value = min;
-                  onChange(item.id || item.title, value);
+                  onChange(isGroup ? `${groupID}@${item.id}` : (item.id || item.title), value);
                 }}
               />
             ) : type == PARAM_TYPE.INTEGER ? (
@@ -107,7 +110,7 @@ const CardItem: FC<CardItemProps> = ({
                   </InputAdornment>
                 }
                 defaultValue={item?.defaultValue}
-                value={customValue ? customValue : item?.defaultValue}
+                value={customValue}
                 disabled={disabled}
                 onChange={(v: any) => {
                   let min = null,
@@ -133,7 +136,7 @@ const CardItem: FC<CardItemProps> = ({
                   </InputAdornment>
                 }
                 defaultValue={item?.defaultValue}
-                value={customValue ? customValue : item?.defaultValue}
+                value={customValue}
                 disabled={disabled}
                 onChange={(v: any) => {
                   const value = v.target.value.replace(/[^A-Za-z ]/, '');
@@ -157,7 +160,7 @@ const CardItem: FC<CardItemProps> = ({
                     }
                   }}
                   disabled={disabled}
-                  value={dayjs(customValue ? customValue : item?.defaultValue)}
+                  value={dayjs(customValue)}
                   onChange={(v: any) => {
                     onChange(item.id || item.title, v.format('YYYY-MM-DD'));
                   }}

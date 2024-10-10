@@ -117,6 +117,49 @@ class ParamService {
         return response.data;
       });
   }
+  async getWaterfallData(parameter_id: number) {
+    return http
+      .get(`/calculator/getWaterfall?parameter_id=${parameter_id}`)
+      .then((response) => {
+        return response.data;
+      });
+  }
+  async getCashflowData(parameter_id: number) {
+    return http
+      .get(`/calculator/getCashflow?parameter_id=${parameter_id}`)
+      .then((response) => {
+        return response.data;
+      });
+  }
+  async getProfitAndLossData(parameter_id: number) {
+    return http
+      .get(`/calculator/getProfitAndLoss?parameter_id=${parameter_id}`)
+      .then((response) => {
+        return response.data;
+      });
+  }
+  async getBalanceSheetData(parameter_id: number) {
+    return http
+      .get(`/calculator/getBalanceSheet?parameter_id=${parameter_id}`)
+      .then((response) => {
+        return response.data;
+      });
+  }
+  async getRevenueGraphData(parameter_id: number) {
+    return http
+      .get(`/calculator/getRevenueGraphData?parameter_id=${parameter_id}`)
+      .then((response) => {
+        return response.data;
+      });
+  }
+  async getCostGraphData(parameter_id: number) {
+    return http
+      .get(`/calculator/getCostGraphData?parameter_id=${parameter_id}`)
+      .then((response) => {
+        return response.data;
+      });
+  }
+
 }
 
 export default new ParamService();

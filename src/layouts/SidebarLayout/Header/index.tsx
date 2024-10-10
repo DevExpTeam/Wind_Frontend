@@ -7,7 +7,6 @@ import {
   lighten,
   Divider,
   IconButton,
-  Tooltip,
   styled,
   useTheme
 } from '@mui/material';
@@ -15,7 +14,6 @@ import MenuTwoToneIcon from '@mui/icons-material/MenuTwoTone';
 import MenuOpenIcon from '@mui/icons-material/MenuOpen';
 import CloseTwoToneIcon from '@mui/icons-material/CloseTwoTone';
 
-import HeaderButtons from './Buttons';
 import HeaderUserbox from './Userbox';
 import HeaderMenu from './Menu';
 import { SidebarContext } from '../../../contexts/SidebarContext';

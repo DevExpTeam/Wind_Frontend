@@ -69,6 +69,32 @@ export type ParamState = {
   timingParam: null | number;
   timingParameterInfos: Array<UpdateParamInfo>;
   saveValue: Boolean;
+  cashflowData: any;
+  cashWaterfallData: any;
+  profitAndLossData: any;
+  balanceSheetData: any;
+  revenueData: {
+    revFromFIT: [],
+    revFromMerchant: [],
+    revenueFromOthers: [],
+  }
+  costGraphData: {
+    totalOperatingCost: [],
+    totalVariableCost: [],
+    totalFixedCost: [],
+    staffCost: [],
+    equipmentCost: [],
+    consumablesCost: [],
+    fuelCost: [],
+    transportCost: [],
+    maintenanceCost: [],
+    spvCost: [],
+    insruanaceCost: [],
+    landLeaseCost: [],
+    securityCost: [],
+    communityPaymentCost: [],
+    managementFee: [],
+  }
 };
 
 export type UserParamSetting = {

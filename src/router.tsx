@@ -11,6 +11,13 @@ import { ParameterSetting } from './pages/parameter/setting';
 import { INPUT_PARAMS } from './utils/constant';
 import { element } from 'prop-types';
 import { propsToClassKey } from '@mui/styles';
+import { Dashboard } from './pages/dashboard';
+import { BalanceSheet } from './pages/Financial Statements/BalanceSheet';
+import { ProfitAndLoss } from './pages/Financial Statements/PLAccount';
+import { CashWaterfall } from './pages/Financial Statements/CashWaterfall';
+import { Cashflow } from './pages/Financial Statements/Cashflow';
+import { RevenueGraphPage } from './components/Graphs/Revenue';
+import { CostGraphPage } from './components/Graphs/Cost';
 
 // import SidebarLayout from 'src/layouts/SidebarLayout';
 // import BaseLayout from 'src/layouts/BaseLayout';
@@ -108,13 +115,20 @@ const routes: RouteObject[] = [
         path: '',
         element: <Navigate to="dashboard" replace />
       },
-
+      {
+        path: 'dashboard',
+        element: <Dashboard />
+      },
       {
         path: 'parameters',
         children: [
           {
             path: '',
             element: <Navigate to="setting" replace />
+          },
+          {
+            path: 'dashboard',
+            element: <Dashboard />
           },
           {
             path: 'setting',
@@ -126,23 +140,38 @@ const routes: RouteObject[] = [
           }))
         ]
       },
-
+      {
+        path: 'financial_statements',
+        children: [
+          {
+            path: 'balance_sheet',
+            element: <BalanceSheet />
+          },
+          {
+            path: 'profit_loss_account',
+            element: <ProfitAndLoss />
+          },
+          {
+            path: 'cash_waterfall',
+            element: <CashWaterfall />
+          },
+          {
+            path: 'cashflow',
+            element: <Cashflow />
+          }
+        ]
+      },
       {
         path: 'graphs',
         children: [
           {
-            path: '',
-            element: <Navigate to="battery" replace />
+            path: 'revenue',
+            element: <RevenueGraphPage />
           },
           {
-            path: 'battery',
-            children: [
-              {
-                path: '',
-                element: <Navigate to="average_battery_cycles" replace />
-              }
-            ]
-          }
+            path: 'cost',
+            element: <CostGraphPage />
+          },
         ]
       }
     ]
